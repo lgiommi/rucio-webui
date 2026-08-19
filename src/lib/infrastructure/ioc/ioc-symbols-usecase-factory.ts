@@ -6,6 +6,7 @@
  */
 const USECASE_FACTORY = {
     DID_META: Symbol.for('Factory<DIDMetaUseCase>'),
+    OPENDATA_DID: Symbol.for('Factory<OpenDataDIDUseCase>'),
     DID_KEYVALUEPAIRS: Symbol.for('Factory<DIDKeyValuePairsDataUseCase>'),
     GET_ACCOUNT_INFO: Symbol.for('Factory<GetAccountInfoUseCase>'),
     GET_RSE: Symbol.for('Factory<GetRSEUseCase>'),

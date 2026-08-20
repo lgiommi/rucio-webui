@@ -9,9 +9,52 @@ type OpenDataResponse = {
     name: string;
     state?: string;
     doi?: string | null;
-    record_id?: number | null;
+    record_id?: number | string | null;
     meta?: Record<string, unknown>;
     message?: string;
+};
+
+type MetadataObject = Record<string, unknown>;
+
+const isObject = (value: unknown): value is MetadataObject => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const getString = (
+    object: MetadataObject,
+    key: string,
+): string | undefined => {
+    const value = object[key];
+
+    return typeof value === 'string'
+        ? value
+        : undefined;
+};
+
+const getObject = (
+    object: MetadataObject,
+    key: string,
+): MetadataObject | undefined => {
+    const value = object[key];
+
+    return isObject(value)
+        ? value
+        : undefined;
+};
+
+const getStringArray = (
+    object: MetadataObject,
+    key: string,
+): string[] => {
+    const value = object[key];
+
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(
+        (item): item is string => typeof item === 'string',
+    );
 };
 
 export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
@@ -67,77 +110,104 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
 
     const meta = data?.meta ?? {};
 
-    const getString = (key: string): string | undefined => {
-        const value = meta[key];
+    /*
+     * Common CERN Open Data metadata
+     */
 
-        return typeof value === 'string'
-            ? value
+    const title = getString(meta, 'title');
+    const publisher = getString(meta, 'publisher');
+    const datePublished = getString(meta, 'date_published');
+    const accelerator = getString(meta, 'accelerator');
+
+    const experiments = getStringArray(meta, 'experiment');
+
+    /*
+     * Type
+     */
+
+    const typeObject = getObject(meta, 'type');
+
+    const primaryType =
+        typeObject
+            ? getString(typeObject, 'primary')
             : undefined;
-    };
 
-    const getNumber = (key: string): number | undefined => {
-        const value = meta[key];
+    const secondaryTypes =
+        typeObject
+            ? getStringArray(typeObject, 'secondary')
+            : [];
 
-        return typeof value === 'number'
-            ? value
+    /*
+     * Collaboration
+     */
+
+    const collaborationObject = getObject(meta, 'collaboration');
+
+    const collaboration =
+        collaborationObject
+            ? getString(collaborationObject, 'name')
             : undefined;
-    };
 
-    const title = getString('title');
-    const experiment = getString('experiment');
-    const collaboration = getString('collaboration');
-    const type = getString('type');
-    const publisher = getString('publisher');
-    const accelerator = getString('accelerator');
-    const runPeriod = getString('run_period');
-    const abstract = getString('abstract');
+    /*
+     * Abstract
+     */
 
-    const datePublished =
-        getString('date_published') ??
-        getString('publication_date');
+    const abstractObject = getObject(meta, 'abstract');
 
-    const metadataDOI = getString('doi');
+    const abstract =
+        abstractObject
+            ? getString(abstractObject, 'description')
+            : undefined;
+
+    /*
+     * Structured Rucio OpenData fields
+     *
+     * Rucio values have priority over metadata JSON values.
+     */
+
+    const state = data?.state;
+
+    const metadataDOI = getString(meta, 'doi');
+
+    const rucioDOI =
+        data?.doi !== undefined && data.doi !== null
+            ? data.doi
+            : undefined;
 
     const doi =
-        data?.doi ??
+        rucioDOI ??
         metadataDOI;
 
+    const doiMismatch =
+        rucioDOI !== undefined &&
+        metadataDOI !== undefined &&
+        rucioDOI !== metadataDOI;
+
+    const metadataRecordIdValue = meta.recid;
+
     const metadataRecordId =
-        getNumber('recid') ??
-        getNumber('record_id');
+        typeof metadataRecordIdValue === 'string' ||
+        typeof metadataRecordIdValue === 'number'
+            ? String(metadataRecordIdValue)
+            : undefined;
+
+    const rucioRecordId =
+        data?.record_id !== undefined &&
+        data.record_id !== null
+            ? String(data.record_id)
+            : undefined;
 
     const recordId =
-        data?.record_id ??
+        rucioRecordId ??
         metadataRecordId;
 
-    const collisionInformation = meta.collision_information;
-    const usage = meta.usage;
-    const methodology = meta.methodology;
-    const distribution = meta.distribution;
-
-    const renderComplexValue = (value: unknown) => {
-        if (value === undefined || value === null) {
-            return null;
-        }
-
-        if (typeof value === 'string') {
-            return (
-                <p className="whitespace-pre-wrap">
-                    {value}
-                </p>
-            );
-        }
-
-        return (
-            <pre className="whitespace-pre-wrap break-words overflow-auto">
-                {JSON.stringify(value, null, 2)}
-            </pre>
-        );
-    };
+    const recordIdMismatch =
+        rucioRecordId !== undefined &&
+        metadataRecordId !== undefined &&
+        rucioRecordId !== metadataRecordId;
 
     return (
         <div className="p-4 overflow-auto space-y-8">
-            {/* Main OpenData information */}
             <section>
                 <h2 className="text-lg font-semibold mb-4">
                     OpenData metadata
@@ -154,6 +224,18 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                         </span>
                     </div>
 
+                    {state && (
+                        <div>
+                            <span className="font-semibold">
+                                State:{' '}
+                            </span>
+
+                            <span>
+                                {state}
+                            </span>
+                        </div>
+                    )}
+
                     {title && (
                         <div>
                             <span className="font-semibold">
@@ -166,14 +248,38 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                         </div>
                     )}
 
-                    {experiment && (
+                    {experiments.length > 0 && (
                         <div>
                             <span className="font-semibold">
                                 Experiment:{' '}
                             </span>
 
                             <span>
-                                {experiment}
+                                {experiments.join(', ')}
+                            </span>
+                        </div>
+                    )}
+
+                    {primaryType && (
+                        <div>
+                            <span className="font-semibold">
+                                Type:{' '}
+                            </span>
+
+                            <span>
+                                {primaryType}
+                            </span>
+                        </div>
+                    )}
+
+                    {secondaryTypes.length > 0 && (
+                        <div>
+                            <span className="font-semibold">
+                                Category:{' '}
+                            </span>
+
+                            <span>
+                                {secondaryTypes.join(', ')}
                             </span>
                         </div>
                     )}
@@ -190,18 +296,6 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                         </div>
                     )}
 
-                    {type && (
-                        <div>
-                            <span className="font-semibold">
-                                Type:{' '}
-                            </span>
-
-                            <span>
-                                {type}
-                            </span>
-                        </div>
-                    )}
-
                     {accelerator && (
                         <div>
                             <span className="font-semibold">
@@ -210,30 +304,6 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
 
                             <span>
                                 {accelerator}
-                            </span>
-                        </div>
-                    )}
-
-                    {runPeriod && (
-                        <div>
-                            <span className="font-semibold">
-                                Run period:{' '}
-                            </span>
-
-                            <span>
-                                {runPeriod}
-                            </span>
-                        </div>
-                    )}
-
-                    {publisher && (
-                        <div>
-                            <span className="font-semibold">
-                                Publisher:{' '}
-                            </span>
-
-                            <span>
-                                {publisher}
                             </span>
                         </div>
                     )}
@@ -250,47 +320,56 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                         </div>
                     )}
 
-                    {data?.state && (
+                    {publisher && (
                         <div>
                             <span className="font-semibold">
-                                State:{' '}
+                                Publisher:{' '}
                             </span>
 
                             <span>
-                                {data.state}
+                                {publisher}
                             </span>
                         </div>
                     )}
                 </div>
             </section>
 
-            {/* External identifiers */}
-            {(doi || recordId !== undefined) && (
+            {(doi || recordId) && (
                 <section>
                     <h2 className="text-lg font-semibold mb-4">
                         External identifiers
                     </h2>
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {doi && (
                             <div>
-                                <span className="font-semibold">
-                                    DOI:{' '}
-                                </span>
+                                <div>
+                                    <span className="font-semibold">
+                                        DOI:{' '}
+                                    </span>
 
-                                <a
-                                    href={`https://doi.org/${doi}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline"
-                                >
-                                    {doi}
-                                </a>
+                                    <a
+                                        href={`https://doi.org/${doi}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline"
+                                    >
+                                        {doi}
+                                    </a>
+                                </div>
+
+                                {doiMismatch && (
+                                    <div className="mt-2 rounded border border-yellow-400 bg-yellow-50 p-3 text-sm text-yellow-900">
+                                        Warning: the DOI stored in Rucio differs
+                                        from the DOI in the OpenData metadata.
+                                        The Rucio value is being used.
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        {recordId !== undefined &&
-                            recordId !== null && (
+                        {recordId && (
+                            <div>
                                 <div>
                                     <span className="font-semibold">
                                         CERN Open Data record:{' '}
@@ -305,12 +384,21 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                                         {recordId}
                                     </a>
                                 </div>
-                            )}
+
+                                {recordIdMismatch && (
+                                    <div className="mt-2 rounded border border-yellow-400 bg-yellow-50 p-3 text-sm text-yellow-900">
+                                        Warning: the record ID stored in Rucio
+                                        differs from the record ID in the
+                                        OpenData metadata. The Rucio value is
+                                        being used.
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </section>
             )}
 
-            {/* Abstract */}
             {abstract && (
                 <section>
                     <h2 className="text-lg font-semibold mb-4">
@@ -323,59 +411,6 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                 </section>
             )}
 
-            {/* Collision information */}
-            {collisionInformation !== undefined && (
-                <section>
-                    <h2 className="text-lg font-semibold mb-4">
-                        Collision information
-                    </h2>
-
-                    <div className="rounded border p-4">
-                        {renderComplexValue(collisionInformation)}
-                    </div>
-                </section>
-            )}
-
-            {/* Usage */}
-            {usage !== undefined && (
-                <section>
-                    <h2 className="text-lg font-semibold mb-4">
-                        Usage
-                    </h2>
-
-                    <div className="rounded border p-4">
-                        {renderComplexValue(usage)}
-                    </div>
-                </section>
-            )}
-
-            {/* Methodology */}
-            {methodology !== undefined && (
-                <section>
-                    <h2 className="text-lg font-semibold mb-4">
-                        Methodology
-                    </h2>
-
-                    <div className="rounded border p-4">
-                        {renderComplexValue(methodology)}
-                    </div>
-                </section>
-            )}
-
-            {/* Distribution */}
-            {distribution !== undefined && (
-                <section>
-                    <h2 className="text-lg font-semibold mb-4">
-                        Distribution
-                    </h2>
-
-                    <div className="rounded border p-4">
-                        {renderComplexValue(distribution)}
-                    </div>
-                </section>
-            )}
-
-            {/* Complete metadata */}
             <section>
                 <h2 className="text-lg font-semibold mb-4">
                     Raw JSON

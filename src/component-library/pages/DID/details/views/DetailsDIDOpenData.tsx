@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { DetailsDIDView } from '@/component-library/pages/DID/details/views/DetailsDIDView';
+import { JSONViewer } from '@/component-library/features/json';
 
 type OpenDataResponse = {
     status: 'success' | 'error';
@@ -417,7 +418,7 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                 </h2>
 
                 <pre className="whitespace-pre-wrap break-words overflow-auto rounded border p-4">
-                    {JSON.stringify(meta, null, 2)}
+                    <JSONViewer value={JSON.stringify(meta, null, 2)} />
                 </pre>
             </section>
         </div>

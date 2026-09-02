@@ -54,9 +54,10 @@ export const DetailsDIDTables = ({ scope, name, type, isOpenData }: DetailsDIDTa
     };
 
     const metadataEnabled = useFeature('dids.metadata');
+    const openDataEnabled = useFeature('opendata');
     const tabNames = tabsByType[type].filter(tab => tab !== 'Attributes' || metadataEnabled);
 
-    if (isOpenData) {
+    if (openDataEnabled && isOpenData) {
         const attributesIndex = tabNames.indexOf('Attributes');
 
         if (attributesIndex !== -1) {

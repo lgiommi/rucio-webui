@@ -7,6 +7,7 @@ import {
 } from '@/lib/core/usecase-models/opendata-did-usecase-models';
 
 import { BaseFeature } from '@/lib/sdk/ioc-helpers';
+import { FeatureKey } from '@/lib/core/entity/feature-config';
 import { Container } from 'inversify';
 
 import OpenDataDIDController, {
@@ -27,7 +28,8 @@ export default class OpenDataDIDFeature extends BaseFeature<
     OpenDataDIDRequest,
     OpenDataDIDResponse,
     OpenDataDIDError,
-    OpenDataDIDViewModel
+    OpenDataDIDViewModel,
+    FeatureKey
 > {
     constructor(appContainer: Container) {
         const gateway = appContainer.get(GATEWAYS.OPENDATA);
@@ -46,6 +48,7 @@ export default class OpenDataDIDFeature extends BaseFeature<
             OpenDataDIDPresenter,
             false,
             symbols,
+            'opendata',
         );
     }
 }

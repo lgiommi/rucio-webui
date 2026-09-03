@@ -1,6 +1,10 @@
-import { OpenDataDIDDTO } from '@/lib/core/dto/opendata-dto';
+import {
+    ListOpenDataDIDsDTO,
+    OpenDataDIDDTO,
+} from '@/lib/core/dto/opendata-dto';
 import OpenDataGatewayOutputPort from '@/lib/core/port/secondary/opendata-gateway-output-port';
 import GetOpenDataDIDEndpoint from '@/lib/infrastructure/gateway/opendata-gateway/endpoints/get-opendata-did-endpoint';
+import ListOpenDataDIDsEndpoint from '@/lib/infrastructure/gateway/opendata-gateway/endpoints/list-opendata-dids-endpoint';
 import { injectable } from 'inversify';
 
 @injectable()
@@ -34,6 +38,34 @@ export default class RucioOpenDataGateway implements OpenDataGatewayOutputPort {
             };
 
             return Promise.resolve(errorDTO);
+        }
+    }
+    async listOpenDataDIDs(
+        rucioAuthToken: string,
+        limit?: number,
+        offset?: number,
+        state?: string,
+    ): Promise<ListOpenDataDIDsDTO> {
+        try {
+            const endpoint = new ListOpenDataDIDsEndpoint(
+                rucioAuthToken,
+                limit,
+                offset,
+                state,
+            );
+
+            return await endpoint.fetch();
+        } catch (error) {
+            return {
+                status: 'error',
+                total: 0,
+                offset: offset ?? 0,
+                dids: [],
+                errorName: 'Unknown Error',
+                errorType: 'gateway_endpoint_error',
+                errorCode: 500,
+                errorMessage: error?.toString(),
+            };
         }
     }
 }

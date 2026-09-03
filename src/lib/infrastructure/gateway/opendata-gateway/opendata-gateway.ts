@@ -25,6 +25,7 @@ export default class RucioOpenDataGateway implements OpenDataGatewayOutputPort {
                 status: 'error',
                 scope,
                 name,
+                files: [],
                 meta: {},
                 errorName: 'Unknown Error',
                 errorType: 'gateway_endpoint_error',

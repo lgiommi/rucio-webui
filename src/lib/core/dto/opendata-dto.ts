@@ -1,3 +1,9 @@
+export interface OpenDataDIDFileDTO {
+    scope: string;
+    name: string;
+    download_urls: string[];
+}
+
 export interface OpenDataDIDDTO {
     status: 'success' | 'error';
 
@@ -7,6 +13,7 @@ export interface OpenDataDIDDTO {
     state?: string;
     doi?: string | null;
     record_id?: number | null;
+    files: OpenDataDIDFileDTO[];
 
     meta: Record<string, unknown>;
 

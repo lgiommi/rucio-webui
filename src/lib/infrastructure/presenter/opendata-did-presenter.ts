@@ -13,6 +13,7 @@ export type OpenDataDIDViewModel = {
     state?: string;
     doi?: string | null;
     record_id?: number | null;
+    files: OpenDataDIDResponse['files'];
 
     meta: Record<string, unknown>;
 };
@@ -35,6 +36,7 @@ export default class OpenDataDIDPresenter extends BasePresenter<
             state: responseModel.state,
             doi: responseModel.doi,
             record_id: responseModel.record_id,
+            files: responseModel.files,
             meta: responseModel.meta,
         };
 
@@ -63,6 +65,7 @@ export default class OpenDataDIDPresenter extends BasePresenter<
             state: undefined,
             doi: null,
             record_id: null,
+            files: [],
             meta: {},
         };
 

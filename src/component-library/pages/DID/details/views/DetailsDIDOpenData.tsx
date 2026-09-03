@@ -3,6 +3,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { DetailsDIDView } from '@/component-library/pages/DID/details/views/DetailsDIDView';
 import { JSONViewer } from '@/component-library/features/json';
+import { OpenDataDownloadMenu } from './OpenDataDownloadMenu';
+
+type OpenDataFileResponse = {
+    scope: string;
+    name: string;
+    download_urls: string[];
+};
 
 type OpenDataResponse = {
     status: 'success' | 'error';
@@ -11,6 +18,7 @@ type OpenDataResponse = {
     state?: string;
     doi?: string | null;
     record_id?: number | string | null;
+    files?: OpenDataFileResponse[];
     meta?: Record<string, unknown>;
     message?: string;
 };
@@ -110,6 +118,7 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
     }
 
     const meta = data?.meta ?? {};
+    const files = data?.files ?? [];
 
     /*
      * Common CERN Open Data metadata
@@ -333,6 +342,52 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name }) => {
                         </div>
                     )}
                 </div>
+            </section>
+
+            <section>
+                <h2 className="text-lg font-semibold mb-4">
+                    Files
+                </h2>
+
+                {files.length === 0 ? (
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        No files available.
+                    </p>
+                ) : (
+                    <div className="overflow-visible rounded border border-neutral-200 dark:border-neutral-700">
+                        <table className="w-full text-sm">
+                            <thead className="bg-neutral-100 dark:bg-neutral-800">
+                                <tr>
+                                    <th className="px-4 py-3 text-left font-semibold">
+                                        File
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold">
+                                        Download
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {files.map(file => (
+                                    <tr
+                                        key={`${file.scope}:${file.name}`}
+                                        className="border-t border-neutral-200 dark:border-neutral-700"
+                                    >
+                                        <td className="px-4 py-3">
+                                            {file.scope}:{file.name}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <OpenDataDownloadMenu
+                                                urls={file.download_urls}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </section>
 
             {(doi || recordId) && (

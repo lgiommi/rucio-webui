@@ -17,7 +17,7 @@ export default class GetOpenDataDIDEndpoint extends BaseEndpoint<OpenDataDIDDTO>
         this.url =
             `${this.rucioHost}/opendata/dids/` +
             `${encodeURIComponent(this.scope)}/` +
-            `${encodeURIComponent(this.name)}?meta=1&files=0`;
+            `${encodeURIComponent(this.name)}?meta=1&files=1&download_urls=1`;
 
         const request: HTTPRequest = {
             method: 'GET',
@@ -49,6 +49,11 @@ export default class GetOpenDataDIDEndpoint extends BaseEndpoint<OpenDataDIDDTO>
             doi?: string | null;
             record_id?: number | null;
             meta?: Record<string, unknown>;
+            files?: Array<{
+                scope: string;
+                name: string;
+                download_urls?: string[];
+            }>;
         };
 
         const dto: OpenDataDIDDTO = {
@@ -58,6 +63,11 @@ export default class GetOpenDataDIDEndpoint extends BaseEndpoint<OpenDataDIDDTO>
             state: data.state,
             doi: data.doi,
             record_id: data.record_id,
+            files: (data.files ?? []).map(file => ({
+                scope: file.scope,
+                name: file.name,
+                download_urls: file.download_urls ?? [],
+            })),
             meta: data.meta ?? {},
         };
 

@@ -89,6 +89,7 @@ class OpenDataDIDUseCase
                 state: dto.state,
                 doi: dto.doi,
                 record_id: dto.record_id,
+                files: dto.files,
                 meta: dto.meta,
             },
             status: 'success',

@@ -5,6 +5,7 @@
 const INPUT_PORT = {
     DID_META: Symbol.for('DIDMetaInputPort'),
     OPENDATA_DID: Symbol.for('OpenDataDIDInputPort'),
+    LIST_OPENDATA_DIDS: Symbol.for('ListOpenDataDIDsInputPort'),
     DID_KEYVALUEPAIRS: Symbol.for('DIDKeyValuePairsDataInputPort'),
     GET_ACCOUNT_INFO: Symbol.for('GetAccountInfoInputPort'),
     GET_RSE: Symbol.for('GetRSEInputPort'),

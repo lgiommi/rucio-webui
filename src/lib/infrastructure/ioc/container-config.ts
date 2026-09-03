@@ -74,6 +74,7 @@ import DeclareBadReplicasFeature from '@/lib/infrastructure/ioc/features/declare
 import OpenDataGatewayOutputPort from '@/lib/core/port/secondary/opendata-gateway-output-port';
 import RucioOpenDataGateway from '@/lib/infrastructure/gateway/opendata-gateway/opendata-gateway';
 import OpenDataDIDFeature from '@/lib/infrastructure/ioc/features/opendata-did-feature';
+import ListOpenDataDIDsFeature from '@/lib/infrastructure/ioc/features/list-opendata-dids-feature';
 
 /**
  * IoC Container configuration for the application.
@@ -104,6 +105,7 @@ loadFeaturesSync(appContainer, authFeatures);
 const coreFeatures = [
     new DIDMetaFeature(appContainer),
     new OpenDataDIDFeature(appContainer),
+    new ListOpenDataDIDsFeature(appContainer),
     new DIDKeyValuePairsDataFeature(appContainer),
     new GetSubscriptionFeature(appContainer),
     new ListDidsFeature(appContainer),

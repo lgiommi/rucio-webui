@@ -42,7 +42,7 @@ export default class GetOpenDataDIDEndpoint extends BaseEndpoint<OpenDataDIDDTO>
     }
 
     createDTO(data: any): OpenDataDIDDTO {
-        data = data as {
+        const response = data as {
             scope: string;
             name: string;
             state?: string;
@@ -58,19 +58,19 @@ export default class GetOpenDataDIDEndpoint extends BaseEndpoint<OpenDataDIDDTO>
 
         const dto: OpenDataDIDDTO = {
             status: 'success',
-            scope: data.scope,
-            name: data.name,
-            state: data.state,
-            doi: data.doi,
-            record_id: data.record_id,
-            files: (data.files ?? []).map(file => ({
+            scope: response.scope,
+            name: response.name,
+            state: response.state,
+            doi: response.doi,
+            record_id: response.record_id,
+            files: (response.files ?? []).map(file => ({
                 scope: file.scope,
                 name: file.name,
                 download_urls: file.download_urls ?? [],
             })),
-            meta: data.meta ?? {},
+            meta: response.meta ?? {},
         };
 
         return dto;
-    }
+}
 }

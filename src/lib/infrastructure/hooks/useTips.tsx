@@ -10,6 +10,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { usePathname } from 'next/navigation';
 import { Tip, getTipsForPage, getAutoShowTips, findTipById, sortTipsByPriority, getTipsByCategory, TipCategory } from '../tips/tip-registry';
 import { getAllTips } from '../tips/tips-data';
+import { useFeature } from '@/component-library/features/feature-flags/FeatureProvider';
 import {
     getDismissedTips,
     dismissTip as storageDismissTip,
@@ -83,13 +84,17 @@ export interface TipsProviderProps {
  */
 export const TipsProvider: React.FC<TipsProviderProps> = ({ children }) => {
     const pathname = usePathname();
+    const openDataEnabled = useFeature('opendata');
     const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
     const [hasSeenOnboarding, setHasSeenOnboarding] = useState(true); // Default true to prevent flash
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [activeTip, setActiveTip] = useState<Tip | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
 
-    const allTips = useMemo(() => getAllTips(), []);
+    const allTips = useMemo(
+        () => getAllTips().filter(tip => tip.category !== TipCategory.OPENDATA || openDataEnabled),
+        [openDataEnabled],
+    );
 
     // Initialize from localStorage on mount
     useEffect(() => {

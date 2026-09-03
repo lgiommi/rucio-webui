@@ -227,7 +227,7 @@ const ThemeSwitchButton = () => {
 
 const TipsButton = () => {
     const { openPanel, dismissedTips, allTips } = useTips();
-    const unreadCount = allTips.length - dismissedTips.size;
+    const unreadCount = allTips.filter(tip => !dismissedTips.has(tip.id)).length;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {

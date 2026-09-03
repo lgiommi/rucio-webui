@@ -69,12 +69,12 @@ export default async function RucioLayout({ children }: { children: React.ReactN
     const features = await featureGateway.enabledSet();
 
     return (
-        <Providers>
-            <FeatureProvider features={features}>
+        <FeatureProvider features={features}>
+            <Providers>
                 <Layout siteHeader={siteHeader} siteHeaderError={siteHeaderError}>
                     {children}
                 </Layout>
-            </FeatureProvider>
-        </Providers>
+            </Providers>
+        </FeatureProvider>
     );
 }

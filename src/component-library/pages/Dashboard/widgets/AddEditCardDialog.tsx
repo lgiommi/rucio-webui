@@ -22,6 +22,7 @@ function getTypeBadgeStyles(type: HotBarCardType): string {
     switch (type) {
         case HotBarCardType.DID:
         case HotBarCardType.DID_LIST:
+        case HotBarCardType.OPENDATA_DID_LIST:
             return 'bg-base-info-100 text-base-info-900 dark:bg-base-info-900/20 dark:text-base-info-100';
         case HotBarCardType.RULE:
         case HotBarCardType.RULE_LIST:
@@ -38,6 +39,10 @@ function getTypeBadgeStyles(type: HotBarCardType): string {
  * Format card type for display
  */
 function formatCardType(type: HotBarCardType): string {
+    if (type === HotBarCardType.OPENDATA_DID_LIST) {
+        return 'OpenData DID List';
+    }
+
     return type.replace(/_/g, ' ');
 }
 

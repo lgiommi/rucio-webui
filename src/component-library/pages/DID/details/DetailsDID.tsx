@@ -22,14 +22,16 @@ import { WarningField } from '@/component-library/features/fields/WarningField';
 import { useFeature } from '@/component-library/features/feature-flags/FeatureProvider';
 import { DetailsDIDDatasetReplicas } from './views/DetailsDIDDatasetReplicas';
 import { Alert } from '@/component-library/atoms/feedback/Alert';
+import { DetailsDIDOpenData } from '@/component-library/pages/DID/details/views/DetailsDIDOpenData';
 
 type DetailsDIDTablesProps = {
     scope: string;
     name: string;
     type: DIDType;
+    isOpenData: boolean;
 };
 
-export const DetailsDIDTables = ({ scope, name, type }: DetailsDIDTablesProps) => {
+export const DetailsDIDTables = ({ scope, name, type, isOpenData }: DetailsDIDTablesProps) => {
     const allTabs: Map<string, DetailsDIDView> = new Map([
         ['Attributes', DetailsDIDAttributes],
         ['Replicas', DetailsDIDFileReplicas],
@@ -38,6 +40,7 @@ export const DetailsDIDTables = ({ scope, name, type }: DetailsDIDTablesProps) =
         ['Parents', DetailsDIDParents],
         ['Contents', DetailsDIDContents],
         ['Contents Replicas', DetailsDIDContentsReplicas],
+        ['OpenData', DetailsDIDOpenData],
     ]);
 
     const tabsByType: Record<DIDType, string[]> = {
@@ -51,7 +54,18 @@ export const DetailsDIDTables = ({ scope, name, type }: DetailsDIDTablesProps) =
     };
 
     const metadataEnabled = useFeature('dids.metadata');
+    const openDataEnabled = useFeature('opendata');
     const tabNames = tabsByType[type].filter(tab => tab !== 'Attributes' || metadataEnabled);
+
+    if (openDataEnabled && isOpenData) {
+        const attributesIndex = tabNames.indexOf('Attributes');
+
+        if (attributesIndex !== -1) {
+            tabNames.splice(attributesIndex + 1, 0, 'OpenData');
+        } else {
+            tabNames.push('OpenData');
+        }
+    }
     const [activeIndex, setActiveIndex] = useState(0);
 
     if (tabNames.length === 0) {
@@ -154,7 +168,7 @@ export const DetailsDID = ({ scope, name }: DetailsDIDProps) => {
                         </div>
                     </header>
                     <DetailsDIDMeta meta={meta} />
-                    <DetailsDIDTables scope={scope} name={name} type={meta.did_type} />
+                    <DetailsDIDTables scope={scope} name={name} type={meta.did_type} isOpenData={meta.is_opendata} />
                 </div>
             </div>
         </main>

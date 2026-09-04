@@ -5,6 +5,7 @@ const GATEWAYS = {
     ACCOUNT: Symbol.for('RucioAccountGateway'),
     AUTH_SERVER: Symbol.for('RucioAuthServer'),
     DID: Symbol.for('RucioDIDGateway'),
+    OPENDATA: Symbol.for('OpenDataGateway'),
     ENV_CONFIG: Symbol.for('EnvConfigGateway'),
     FEATURE_CONFIG: Symbol.for('FeatureConfigGateway'),
     RSE: Symbol.for('RSEGateway'),

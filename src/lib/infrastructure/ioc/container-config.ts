@@ -71,6 +71,10 @@ import GetDDMLinkFeature from './features/get-ddm-link-feature';
 import UpdateRuleFeature from '@/lib/infrastructure/ioc/features/update-rule-feature';
 import ListSuspiciousReplicasFeature from '@/lib/infrastructure/ioc/features/list-suspicious-replicas-feature';
 import DeclareBadReplicasFeature from '@/lib/infrastructure/ioc/features/declare-bad-replicas-feature';
+import OpenDataGatewayOutputPort from '@/lib/core/port/secondary/opendata-gateway-output-port';
+import RucioOpenDataGateway from '@/lib/infrastructure/gateway/opendata-gateway/opendata-gateway';
+import OpenDataDIDFeature from '@/lib/infrastructure/ioc/features/opendata-did-feature';
+import ListOpenDataDIDsFeature from '@/lib/infrastructure/ioc/features/list-opendata-dids-feature';
 
 /**
  * IoC Container configuration for the application.
@@ -79,6 +83,7 @@ const appContainer = new Container();
 appContainer.bind<AccountGatewayOutputPort>(GATEWAYS.ACCOUNT).to(RucioAccountGateway);
 appContainer.bind<AuthServerGatewayOutputPort>(GATEWAYS.AUTH_SERVER).to(RucioAuthServer);
 appContainer.bind<DIDGatewayOutputPort>(GATEWAYS.DID).to(RucioDIDGateway);
+appContainer.bind<OpenDataGatewayOutputPort>(GATEWAYS.OPENDATA).to(RucioOpenDataGateway);
 appContainer.bind<EnvConfigGatewayOutputPort>(GATEWAYS.ENV_CONFIG).to(EnvConfigGateway);
 appContainer.bind<FeatureConfigGatewayOutputPort>(GATEWAYS.FEATURE_CONFIG).to(FeatureConfigGateway);
 appContainer.bind<RSEGatewayOutputPort>(GATEWAYS.RSE).to(RSEGateway);
@@ -99,6 +104,8 @@ loadFeaturesSync(appContainer, authFeatures);
 // Load Features
 const coreFeatures = [
     new DIDMetaFeature(appContainer),
+    new OpenDataDIDFeature(appContainer),
+    new ListOpenDataDIDsFeature(appContainer),
     new DIDKeyValuePairsDataFeature(appContainer),
     new GetSubscriptionFeature(appContainer),
     new ListDidsFeature(appContainer),

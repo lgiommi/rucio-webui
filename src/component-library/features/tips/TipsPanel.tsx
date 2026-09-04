@@ -61,6 +61,7 @@ export const TipsPanel: React.FC<TipsPanelProps> = ({ open, onOpenChange, tips, 
             TipCategory.GETTING_STARTED,
             TipCategory.NAVIGATION,
             TipCategory.DIDS,
+            TipCategory.OPENDATA,
             TipCategory.RULES,
             TipCategory.RSES,
             TipCategory.SUBSCRIPTIONS,
@@ -88,7 +89,7 @@ export const TipsPanel: React.FC<TipsPanelProps> = ({ open, onOpenChange, tips, 
         }
     }, [confirmReset, onResetAllTips]);
 
-    const dismissedCount = dismissedTips.size;
+    const dismissedCount = tips.filter(tip => dismissedTips.has(tip.id)).length;
     const totalCount = tips.length;
 
     return (

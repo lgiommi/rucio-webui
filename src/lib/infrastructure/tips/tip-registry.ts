@@ -10,6 +10,7 @@ import { ComponentType } from 'react';
 export enum TipCategory {
     GETTING_STARTED = 'getting-started',
     DIDS = 'dids',
+    OPENDATA = 'opendata',
     RULES = 'rules',
     RSES = 'rses',
     SUBSCRIPTIONS = 'subscriptions',
@@ -23,6 +24,7 @@ export enum TipCategory {
 export const TipCategoryLabels: Record<TipCategory, string> = {
     [TipCategory.GETTING_STARTED]: 'Getting Started',
     [TipCategory.DIDS]: 'Data Identifiers (DIDs)',
+    [TipCategory.OPENDATA]: 'OpenData',
     [TipCategory.RULES]: 'Rules',
     [TipCategory.RSES]: 'Storage Elements (RSEs)',
     [TipCategory.SUBSCRIPTIONS]: 'Subscriptions',

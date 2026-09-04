@@ -26,8 +26,14 @@ import { buildDIDSearchUrl, buildRSESearchUrl, buildRuleDetailUrl, buildSubscrip
  *   remains pure and works before PermixProvider has run setup().
  * @param isAdmin - Whether the current user has the admin role. Gates the
  *   suspicious-replicas entry (admin-only surface).
+ * @param openDataEnabled - Whether the OpenData feature is enabled.
  */
-export function getNavigationCommands(account?: string, canViewApprovalQueue?: boolean, isAdmin?: boolean): CommandItem[] {
+export function getNavigationCommands(
+    account?: string,
+    canViewApprovalQueue?: boolean,
+    isAdmin?: boolean,
+    openDataEnabled?: boolean,
+): CommandItem[] {
     const commands: CommandItem[] = [
         {
             id: 'nav-dashboard',
@@ -47,6 +53,25 @@ export function getNavigationCommands(account?: string, canViewApprovalQueue?: b
             url: '/dids',
             keywords: ['did', 'data', 'identifier', 'dataset', 'file', 'container'],
         },
+        ...(openDataEnabled
+            ? [
+                {
+                    id: 'nav-opendata-dids',
+                    type: 'navigation' as const,
+                    title: 'OpenData DIDs',
+                    description: 'Browse OpenData Data Identifiers',
+                    icon: DocumentDuplicateIcon,
+                    url: '/opendata/dids',
+                    keywords: [
+                        'opendata',
+                        'open data',
+                        'did',
+                        'data',
+                        'identifier',
+                    ],
+                },
+            ]
+            : []),
         {
             id: 'nav-rules',
             type: 'navigation',

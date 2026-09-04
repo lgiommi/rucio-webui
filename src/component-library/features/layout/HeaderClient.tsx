@@ -296,6 +296,7 @@ export const HeaderClient = ({ siteHeader, siteHeaderError, isSiteHeaderFetching
     const rulesApproveEnabled = useFeature('rules.approve');
     const subscriptionsEnabled = useFeature('subscriptions');
     const rsesEnabled = useFeature('rses');
+    const openDataEnabled = useFeature('opendata');
 
     const rulesChildren: TMenuItem[] = [
         ...(rulesEnabled ? [{ title: 'List Rules', path: '/rules' }] : []),
@@ -319,6 +320,19 @@ export const HeaderClient = ({ siteHeader, siteHeaderError, isSiteHeaderFetching
     const menuItems: TFullMenuItem[] = [
         { title: 'Dashboard', path: '/dashboard' },
         didsItem,
+        ...(openDataEnabled
+            ? [
+                {
+                    title: 'OpenData',
+                    children: [
+                        {
+                            title: 'List DIDs',
+                            path: '/opendata/dids',
+                        },
+                    ],
+                },
+            ]
+            : []),
         ...(rsesEnabled ? [{ title: 'RSEs', path: '/rses' }] : []),
         ...(subscriptionsEnabled ? [{ title: 'Subscriptions', path: subscriptionUrl }] : []),
         ...(rulesChildren.length > 0 ? [{ title: 'Rules', children: rulesChildren }] : []),

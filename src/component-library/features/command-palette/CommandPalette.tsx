@@ -24,6 +24,7 @@ import { SiteHeaderViewModel } from '@/lib/infrastructure/data/view-model/site-h
 import { usePermissions } from '@/lib/infrastructure/hooks/usePermissions';
 import { useSession } from 'next-auth/react';
 import { Role } from '@/lib/core/entity/auth-models';
+import { useFeature } from '@/component-library/features/feature-flags/FeatureProvider';
 
 export interface CommandPaletteProps {
     /** Whether the palette is open */
@@ -32,6 +33,17 @@ export interface CommandPaletteProps {
     /** Callback when palette should close */
     onOpenChange: (open: boolean) => void;
 }
+
+const isOpenDataUrl = (url: string): boolean => {
+    try {
+        return new URL(
+            url,
+            window.location.origin,
+        ).pathname.startsWith('/opendata');
+    } catch {
+        return false;
+    }
+};
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChange }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -57,13 +69,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
     const canViewApprovalQueue = isReady ? check('rule', 'viewApprovalQueue') : false;
     const { data: session } = useSession();
     const isAdmin = session?.user?.role === Role.ADMIN;
+    const openDataEnabled = useFeature('opendata');
 
     // Build all sections with filtering
     const sections = useMemo<CommandSection[]>(() => {
         const allSections: CommandSection[] = [];
 
         // Recent Pages Section
-        const recentPages = getRecentPages(5);
+        const recentPages = getRecentPages(5).filter(
+            page =>
+                openDataEnabled ||
+                !isOpenDataUrl(page.url),
+        );
         if (recentPages.length > 0) {
             const recentItems: CommandItem[] = recentPages.map(page => ({
                 id: `recent-${page.url}`,
@@ -84,7 +101,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         // Bookmarks Section
-        const bookmarks = getCards();
+        const bookmarks = getCards().filter(
+            bookmark =>
+                openDataEnabled ||
+                !isOpenDataUrl(bookmark.url),
+        );
         if (bookmarks.length > 0) {
             const bookmarkItems: CommandItem[] = bookmarks.map(bookmark => ({
                 id: `bookmark-${bookmark.id}`,
@@ -106,7 +127,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         // Navigation Section
-        const navigationItems = getNavigationCommands(account, canViewApprovalQueue, isAdmin);
+        const navigationItems = getNavigationCommands(
+            account,
+            canViewApprovalQueue,
+            isAdmin,
+            openDataEnabled,
+        );
         allSections.push({
             id: 'navigation',
             title: 'Navigation',
@@ -148,7 +174,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         return allSections;
-    }, [searchQuery, account, canViewApprovalQueue, isAdmin]);
+    }, [
+        searchQuery,
+        account,
+        canViewApprovalQueue,
+        isAdmin,
+        openDataEnabled,
+    ]);
 
     // Calculate total items count for keyboard navigation
     const totalItems = useMemo(() => {

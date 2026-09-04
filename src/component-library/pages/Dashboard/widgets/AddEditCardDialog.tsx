@@ -182,7 +182,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                             </label>
                             <Input
                                 id="url"
-                                type="url"
+                                type="text"
                                 value={url}
                                 onChange={e => {
                                     setUrl(e.target.value);
@@ -190,7 +190,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                                         setErrors({ ...errors, url: undefined });
                                     }
                                 }}
-                                placeholder="/did/scope:name"
+                                placeholder="e.g., /did/scope:name or /dids"
                                 className={errors.url ? 'border-base-error-500' : ''}
                             />
                             {errors.url && <p className="mt-1 text-sm text-base-error-600 dark:text-base-error-400">{errors.url}</p>}

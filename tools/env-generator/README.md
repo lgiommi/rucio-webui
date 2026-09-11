@@ -42,6 +42,7 @@ The `PARAMS_ENCODING_ENABLED` in the helm chart config of the Rucio WebUI tells 
 | FEATURE_RULES_APPROVE     | RUCIO_WEBUI_FEATURE_RULES_APPROVE     | Enable the Approve Rules page and API. Requires FEATURE_RULES.                             | true                           | true               |
 | FEATURE_SUBSCRIPTIONS     | RUCIO_WEBUI_FEATURE_SUBSCRIPTIONS     | Enable the Subscriptions pages and API routes.                                            | true                           | true               |
 | FEATURE_RSES              | RUCIO_WEBUI_FEATURE_RSES              | Enable the RSEs pages and API routes.                                                     | true                           | true               |
+| FEATURE_OPENDATA | RUCIO_WEBUI_FEATURE_OPENDATA | Enable OpenData-specific DID functionality and the OpenData API used by the WebUI. | false | false |
 | FEATURE_DIDS_METADATA     | RUCIO_WEBUI_FEATURE_DIDS_METADATA     | Enable the DID Attributes tab and its metadata API (get-did-keyvaluepairs). Core DID metadata stays available. | true                           | true               |
 | FEATURE_DIDS_MUTATE       | RUCIO_WEBUI_FEATURE_DIDS_MUTATE       | Enable the DID mutation APIs (add-did, attach-dids, set-did-status).                       | true                           | true               |
 

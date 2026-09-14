@@ -34,6 +34,14 @@ export interface CommandPaletteProps {
     onOpenChange: (open: boolean) => void;
 }
 
+const isOpenDataUrl = (url: string): boolean => {
+    try {
+        return new URL(url, window.location.origin).pathname.startsWith('/opendata');
+    } catch {
+        return false;
+    }
+};
+
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChange }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -59,13 +67,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
     const { data: session } = useSession();
     const isAdmin = session?.user?.role === Role.ADMIN;
     const accountsEnabled = useFeature('accounts');
+    const openDataEnabled = useFeature('opendata');
 
     // Build all sections with filtering
     const sections = useMemo<CommandSection[]>(() => {
         const allSections: CommandSection[] = [];
 
         // Recent Pages Section
-        const recentPages = getRecentPages(5);
+        const recentPages = getRecentPages(5).filter(page => openDataEnabled || !isOpenDataUrl(page.url));
         if (recentPages.length > 0) {
             const recentItems: CommandItem[] = recentPages.map(page => ({
                 id: `recent-${page.url}`,
@@ -86,7 +95,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         // Bookmarks Section
-        const bookmarks = getCards();
+        const bookmarks = getCards().filter(bookmark => openDataEnabled || !isOpenDataUrl(bookmark.url));
         if (bookmarks.length > 0) {
             const bookmarkItems: CommandItem[] = bookmarks.map(bookmark => ({
                 id: `bookmark-${bookmark.id}`,
@@ -108,7 +117,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         // Navigation Section
-        const navigationItems = getNavigationCommands(account, canViewApprovalQueue, isAdmin, accountsEnabled);
+        const navigationItems = getNavigationCommands(account, canViewApprovalQueue, isAdmin, accountsEnabled, openDataEnabled);
         allSections.push({
             id: 'navigation',
             title: 'Navigation',
@@ -150,7 +159,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         }
 
         return allSections;
-    }, [searchQuery, account, canViewApprovalQueue, isAdmin, accountsEnabled]);
+    }, [searchQuery, account, canViewApprovalQueue, isAdmin, accountsEnabled, openDataEnabled]);
 
     // Calculate total items count for keyboard navigation
     const totalItems = useMemo(() => {

@@ -24,6 +24,7 @@ export function inferCardType(url: string): HotBarCardType {
         // DID names such as /did/page/scope/accounts.log.
         if (pathname === '/accounts' || pathname.startsWith('/accounts/')) return HotBarCardType.ACCOUNT_LIST;
         if (pathname.startsWith('/account/')) return HotBarCardType.ACCOUNT;
+        if (pathname.includes('/opendata/dids')) return HotBarCardType.OPENDATA_DID_LIST;
         if (pathname.includes('/dids')) return HotBarCardType.DID_LIST;
         if (pathname.includes('/did/')) return HotBarCardType.DID;
         if (pathname.includes('/rules')) return HotBarCardType.RULE_LIST;

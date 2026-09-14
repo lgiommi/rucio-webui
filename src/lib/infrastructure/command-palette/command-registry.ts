@@ -38,8 +38,9 @@ import {
  *   suspicious-replicas and accounts entries (admin-only surfaces).
  * @param accountsEnabled - Whether the `accounts` feature flag is on. Gates the
  *   accounts and my-account entries.
+ * @param openDataEnabled - Whether the OpenData feature is enabled.
  */
-export function getNavigationCommands(account?: string, canViewApprovalQueue?: boolean, isAdmin?: boolean, accountsEnabled?: boolean): CommandItem[] {
+export function getNavigationCommands(account?: string, canViewApprovalQueue?: boolean, isAdmin?: boolean, accountsEnabled?: boolean, openDataEnabled?: boolean): CommandItem[] {
     const commands: CommandItem[] = [
         {
             id: 'nav-dashboard',
@@ -59,6 +60,19 @@ export function getNavigationCommands(account?: string, canViewApprovalQueue?: b
             url: '/dids',
             keywords: ['did', 'data', 'identifier', 'dataset', 'file', 'container'],
         },
+        ...(openDataEnabled
+            ? [
+                  {
+                      id: 'nav-opendata-dids',
+                      type: 'navigation' as const,
+                      title: 'OpenData DIDs',
+                      description: 'Browse OpenData Data Identifiers',
+                      icon: DocumentDuplicateIcon,
+                      url: '/opendata/dids',
+                      keywords: ['opendata', 'open data', 'did', 'data', 'identifier'],
+                  },
+              ]
+            : []),
         {
             id: 'nav-rules',
             type: 'navigation',

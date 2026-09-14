@@ -259,7 +259,7 @@ const ThemeSwitchButton = () => {
 
 const TipsButton = () => {
     const { openPanel, dismissedTips, allTips } = useTips();
-    const unreadCount = allTips.length - dismissedTips.size;
+    const unreadCount = allTips.filter(tip => !dismissedTips.has(tip.id)).length;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -329,6 +329,7 @@ export const HeaderClient = ({ siteHeader, siteHeaderError, isSiteHeaderFetching
     const subscriptionsEnabled = useFeature('subscriptions');
     const rsesEnabled = useFeature('rses');
     const accountsEnabled = useFeature('accounts');
+    const openDataEnabled = useFeature('opendata');
 
     const rulesChildren: TMenuItem[] = [
         ...(rulesEnabled ? [{ title: 'List Rules', path: '/rules' }] : []),
@@ -352,6 +353,19 @@ export const HeaderClient = ({ siteHeader, siteHeaderError, isSiteHeaderFetching
     const menuItems: TFullMenuItem[] = [
         { title: 'Dashboard', path: '/dashboard' },
         didsItem,
+        ...(openDataEnabled
+            ? [
+                  {
+                      title: 'OpenData',
+                      children: [
+                          {
+                              title: 'List DIDs',
+                              path: '/opendata/dids',
+                          },
+                      ],
+                  },
+              ]
+            : []),
         ...(rsesEnabled ? [{ title: 'RSEs', path: '/rses' }] : []),
         ...(subscriptionsEnabled ? [{ title: 'Subscriptions', path: subscriptionUrl }] : []),
         ...(rulesChildren.length > 0 ? [{ title: 'Rules', children: rulesChildren }] : []),

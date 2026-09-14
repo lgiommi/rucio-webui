@@ -44,4 +44,8 @@ describe('OpenData feature configuration', () => {
     it('is disabled by default', () => {
         expect(FEATURE_REGISTRY.opendata.default).toBe(false);
     });
+
+    it('protects the OpenData DID page', () => {
+        expect(FEATURE_REGISTRY.opendata.pages).toContain('/opendata/dids');
+    });
 });

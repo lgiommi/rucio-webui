@@ -22,6 +22,7 @@ function getTypeBadgeStyles(type: HotBarCardType): string {
     switch (type) {
         case HotBarCardType.DID:
         case HotBarCardType.DID_LIST:
+        case HotBarCardType.OPENDATA_DID_LIST:
             return 'bg-base-info-100 text-base-info-900 dark:bg-base-info-900/20 dark:text-base-info-100';
         case HotBarCardType.RULE:
         case HotBarCardType.RULE_LIST:
@@ -38,6 +39,10 @@ function getTypeBadgeStyles(type: HotBarCardType): string {
  * Format card type for display
  */
 function formatCardType(type: HotBarCardType): string {
+    if (type === HotBarCardType.OPENDATA_DID_LIST) {
+        return 'OpenData DID List';
+    }
+
     return type.replace(/_/g, ' ');
 }
 
@@ -177,7 +182,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                             </label>
                             <Input
                                 id="url"
-                                type="url"
+                                type="text"
                                 value={url}
                                 onChange={e => {
                                     setUrl(e.target.value);
@@ -185,7 +190,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                                         setErrors({ ...errors, url: undefined });
                                     }
                                 }}
-                                placeholder="/did/scope:name"
+                                placeholder="e.g., /did/scope:name or /dids"
                                 className={errors.url ? 'border-base-error-500' : ''}
                             />
                             {errors.url && <p className="mt-1 text-sm text-base-error-600 dark:text-base-error-400">{errors.url}</p>}

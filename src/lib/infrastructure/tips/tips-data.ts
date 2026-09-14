@@ -75,6 +75,22 @@ export const TIPS: Tip[] = [
     },
 
     // ============================================
+    // OPENDATA
+    // ============================================
+    {
+        id: 'opendata-list',
+        title: 'Browsing OpenData DIDs',
+        content:
+            'Use the OpenData DIDs list to browse data identifiers registered for OpenData. Open a DID to view its OpenData metadata, publication information, files, and download URLs.',
+        category: TipCategory.OPENDATA,
+        priority: 'essential',
+        pages: ['/opendata'],
+        showOnFirstVisit: true,
+        variant: 'info',
+        learnMoreUrl: 'https://rucio.github.io/documentation/operator/open_data/',
+    },
+
+    // ============================================
     // RULES
     // ============================================
     {

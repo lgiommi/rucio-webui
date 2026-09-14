@@ -39,3 +39,9 @@ describe('feature-config registry + resolution', () => {
         expect(Object.keys(set).sort()).toEqual(keys.sort());
     });
 });
+
+describe('OpenData feature configuration', () => {
+    it('is disabled by default', () => {
+        expect(FEATURE_REGISTRY.opendata.default).toBe(false);
+    });
+});

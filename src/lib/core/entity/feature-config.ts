@@ -18,6 +18,7 @@ export const FEATURE_REGISTRY = {
     'rules.approve': { default: true, parent: 'rules', pages: ['/rules/approve'] },
     subscriptions: { default: true, pages: ['/subscriptions', '/subscription/[account]/[name]'] },
     rses: { default: true, pages: ['/rses', '/rse/[name]'] },
+    opendata: { default: false, pages: [] },
     'dids.metadata': { default: true, pages: [] },
     'dids.mutate': { default: true, pages: [] },
 } as const satisfies Record<string, FeatureDefinition>;

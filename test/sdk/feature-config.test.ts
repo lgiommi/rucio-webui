@@ -85,3 +85,9 @@ describe('feature-config registry + resolution', () => {
         expect(isFeatureEnabledInEnv('rules.create', {})).toBe(true);
     });
 });
+
+describe('OpenData feature configuration', () => {
+    it('is disabled by default', () => {
+        expect(FEATURE_REGISTRY.opendata.default).toBe(false);
+    });
+});

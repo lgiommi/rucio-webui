@@ -90,6 +90,10 @@ import AMIGateway from '../gateway/ami-gateway/ami-gateway';
 import GetAMITagInfoFeature from '@/lib/infrastructure/ioc/features/get-ami-tag-info-feature';
 import GetPandaTaskLinkFeature from '@/lib/infrastructure/ioc/features/get-panda-task-link-feature';
 import { isFeatureEnabledInEnv } from '@/lib/core/entity/feature-config';
+import OpenDataGatewayOutputPort from '@/lib/core/port/secondary/opendata-gateway-output-port';
+import RucioOpenDataGateway from '@/lib/infrastructure/gateway/opendata-gateway/opendata-gateway';
+import OpenDataDIDFeature from '@/lib/infrastructure/ioc/features/opendata-did-feature';
+import ListOpenDataDIDsFeature from '@/lib/infrastructure/ioc/features/list-opendata-dids-feature';
 
 /**
  * IoC Container configuration for the application.
@@ -98,6 +102,7 @@ const appContainer = new Container();
 appContainer.bind<AccountGatewayOutputPort>(GATEWAYS.ACCOUNT).to(RucioAccountGateway);
 appContainer.bind<AuthServerGatewayOutputPort>(GATEWAYS.AUTH_SERVER).to(RucioAuthServer);
 appContainer.bind<DIDGatewayOutputPort>(GATEWAYS.DID).to(RucioDIDGateway);
+appContainer.bind<OpenDataGatewayOutputPort>(GATEWAYS.OPENDATA).to(RucioOpenDataGateway);
 appContainer.bind<EnvConfigGatewayOutputPort>(GATEWAYS.ENV_CONFIG).to(EnvConfigGateway);
 appContainer.bind<FeatureConfigGatewayOutputPort>(GATEWAYS.FEATURE_CONFIG).to(FeatureConfigGateway);
 appContainer.bind<RSEGatewayOutputPort>(GATEWAYS.RSE).to(RSEGateway);
@@ -119,6 +124,8 @@ loadFeaturesSync(appContainer, authFeatures);
 // Load Features
 const coreFeatures = [
     new DIDMetaFeature(appContainer),
+    new OpenDataDIDFeature(appContainer),
+    new ListOpenDataDIDsFeature(appContainer),
     new DIDKeyValuePairsDataFeature(appContainer),
     new GetSubscriptionFeature(appContainer),
     new ListDidsFeature(appContainer),

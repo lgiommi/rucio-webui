@@ -1,4 +1,3 @@
-import { OpenDataDIDInputPort } from '@/lib/core/port/primary/opendata-did-ports';
 import OpenDataDIDUseCase from '@/lib/core/use-case/opendata-did-usecase';
 import { OpenDataDIDError, OpenDataDIDRequest, OpenDataDIDResponse } from '@/lib/core/usecase-models/opendata-did-usecase-models';
 
@@ -8,7 +7,8 @@ import { Container } from 'inversify';
 
 import OpenDataDIDController, { OpenDataDIDControllerParameters } from '../../controller/opendata-did-controller';
 
-import OpenDataDIDPresenter, { OpenDataDIDViewModel } from '@/lib/infrastructure/presenter/opendata-did-presenter';
+import OpenDataDIDPresenter from '@/lib/infrastructure/presenter/opendata-did-presenter';
+import type { OpenDataDIDViewModel } from '@/lib/infrastructure/data/view-model/opendata';
 
 import CONTROLLERS from '../ioc-symbols-controllers';
 import GATEWAYS from '../ioc-symbols-gateway';

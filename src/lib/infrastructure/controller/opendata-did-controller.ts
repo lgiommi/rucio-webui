@@ -8,6 +8,9 @@ import USECASE_FACTORY from '../ioc/ioc-symbols-usecase-factory';
 export type OpenDataDIDControllerParameters = TAuthenticatedControllerParameters & {
     name: string;
     scope: string;
+    includeFiles?: boolean;
+    includeMeta?: boolean;
+    includeDownloadUrls?: boolean;
 };
 
 @injectable()
@@ -24,6 +27,9 @@ export default class OpenDataDIDController extends BaseController<OpenDataDIDCon
             did: parameters.name,
             scope: parameters.scope,
             rucioAuthToken: parameters.rucioAuthToken,
+            includeFiles: parameters.includeFiles,
+            includeMeta: parameters.includeMeta,
+            includeDownloadUrls: parameters.includeDownloadUrls,
         } as OpenDataDIDRequest;
     }
 }

@@ -1,15 +1,16 @@
 import { BaseErrorResponseModel, BaseResponseModel } from '@/lib/sdk/usecase-models';
+import type { OpenDataDIDState, OpenDataDIDStateFilter, OpenDataErrorType } from '@/lib/core/entity/opendata';
 
 export interface ListOpenDataDIDsRequest {
     limit?: number;
     offset?: number;
-    state?: string;
+    state?: OpenDataDIDStateFilter;
 }
 
 export interface OpenDataDIDListItem {
     scope: string;
     name: string;
-    state?: string;
+    state?: OpenDataDIDState;
     created_at?: string;
     updated_at?: string;
 }
@@ -21,5 +22,5 @@ export interface ListOpenDataDIDsResponse extends BaseResponseModel {
 }
 
 export interface ListOpenDataDIDsError extends BaseErrorResponseModel {
-    error: 'UNKNOWN_ERROR' | 'INVALID_REQUEST' | 'INVALID_AUTH' | 'NOT_FOUND' | 'FEATURE_UNSUPPORTED';
+    error: OpenDataErrorType;
 }

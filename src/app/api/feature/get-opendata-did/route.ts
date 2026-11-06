@@ -21,9 +21,22 @@ async function getHandler(request: NextRequest) {
             return NextResponse.json({ error: 'Missing required parameters: scope and name' }, { status: 400 });
         }
 
+        const files = typeof params.files === 'string' ? params.files : undefined;
+        const meta = typeof params.meta === 'string' ? params.meta : undefined;
+
+        if ((files !== undefined && files !== '0' && files !== '1') || (meta !== undefined && meta !== '0' && meta !== '1')) {
+            return NextResponse.json({ error: 'files and meta must be 0 or 1' }, { status: 400 });
+        }
+
         const controller = appContainer.get<BaseController<OpenDataDIDControllerParameters, void>>(CONTROLLERS.OPENDATA_DID);
 
-        return executeAuthenticatedController(controller, { scope, name });
+        return executeAuthenticatedController(controller, {
+            scope,
+            name,
+            includeFiles: files !== '0',
+            includeMeta: meta !== '0',
+            includeDownloadUrls: false,
+        });
     } catch (error) {
         console.error('Error in get-opendata-did:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

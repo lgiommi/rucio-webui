@@ -1,19 +1,6 @@
 import { OpenDataDIDError, OpenDataDIDResponse } from '@/lib/core/usecase-models/opendata-did-usecase-models';
 import { BasePresenter } from '@/lib/sdk/presenter';
-
-export type OpenDataDIDViewModel = {
-    status: 'success' | 'error';
-    message?: string;
-
-    scope: string;
-    name: string;
-    state?: string;
-    doi?: string | null;
-    record_id?: number | null;
-    files: OpenDataDIDResponse['files'];
-
-    meta: Record<string, unknown>;
-};
+import type { OpenDataDIDViewModel } from '@/lib/infrastructure/data/view-model/opendata';
 
 export default class OpenDataDIDPresenter extends BasePresenter<OpenDataDIDResponse, OpenDataDIDError, OpenDataDIDViewModel> {
     convertResponseModelToViewModel(responseModel: OpenDataDIDResponse): {
@@ -28,6 +15,7 @@ export default class OpenDataDIDPresenter extends BasePresenter<OpenDataDIDRespo
             doi: responseModel.doi,
             record_id: responseModel.record_id,
             files: responseModel.files,
+            files_summary: responseModel.files_summary,
             meta: responseModel.meta,
         };
 
@@ -46,6 +34,7 @@ export default class OpenDataDIDPresenter extends BasePresenter<OpenDataDIDRespo
 
         const viewModel: OpenDataDIDViewModel = {
             status: 'error',
+            errorType: errorModel.error,
             message,
             scope: '',
             name: '',

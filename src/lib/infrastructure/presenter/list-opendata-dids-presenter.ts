@@ -1,14 +1,6 @@
 import { ListOpenDataDIDsError, ListOpenDataDIDsResponse } from '@/lib/core/usecase-models/list-opendata-dids-usecase-models';
 import { BasePresenter } from '@/lib/sdk/presenter';
-
-export type ListOpenDataDIDsViewModel = {
-    status: 'success' | 'error';
-    message?: string;
-
-    total: number;
-    offset: number;
-    dids: ListOpenDataDIDsResponse['dids'];
-};
+import type { ListOpenDataDIDsViewModel } from '@/lib/infrastructure/data/view-model/opendata';
 
 export default class ListOpenDataDIDsPresenter extends BasePresenter<ListOpenDataDIDsResponse, ListOpenDataDIDsError, ListOpenDataDIDsViewModel> {
     convertResponseModelToViewModel(responseModel: ListOpenDataDIDsResponse): {
@@ -38,6 +30,7 @@ export default class ListOpenDataDIDsPresenter extends BasePresenter<ListOpenDat
 
         const viewModel: ListOpenDataDIDsViewModel = {
             status: 'error',
+            errorType: errorModel.error,
             message,
             total: 0,
             offset: 0,

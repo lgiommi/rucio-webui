@@ -4,6 +4,7 @@ import { BaseController, TAuthenticatedControllerParameters } from '@/lib/sdk/co
 import { inject, injectable } from 'inversify';
 import { Signal } from '@/lib/sdk/web';
 import USECASE_FACTORY from '../ioc/ioc-symbols-usecase-factory';
+import type { OpenDataDIDStateFilter } from '@/lib/core/entity/opendata';
 
 export type ListOpenDataDIDsControllerParameters = TAuthenticatedControllerParameters & {
     limit?: string;
@@ -24,7 +25,7 @@ export default class ListOpenDataDIDsController extends BaseController<ListOpenD
         return {
             limit: parameters.limit !== undefined ? Number(parameters.limit) : undefined,
             offset: parameters.offset !== undefined ? Number(parameters.offset) : undefined,
-            state: parameters.state,
+            state: parameters.state?.toLowerCase() as OpenDataDIDStateFilter | undefined,
             rucioAuthToken: parameters.rucioAuthToken,
         } as ListOpenDataDIDsRequest;
     }

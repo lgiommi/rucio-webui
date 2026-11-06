@@ -8,8 +8,9 @@ import {
     ListOpenDataDIDsRequest,
     ListOpenDataDIDsResponse,
 } from '@/lib/core/usecase-models/list-opendata-dids-usecase-models';
-
-type ListOpenDataDIDsDTO = Awaited<ReturnType<OpenDataGatewayOutputPort['listOpenDataDIDs']>>;
+import type { ListOpenDataDIDsDTO } from '@/lib/core/dto/opendata-dto';
+import { isValidOpenDataDIDStateFilter } from '@/lib/core/entity/opendata';
+import { mapOpenDataErrorType } from './opendata-error-mapper';
 
 @injectable()
 class ListOpenDataDIDsUseCase
@@ -56,6 +57,16 @@ class ListOpenDataDIDsUseCase
             };
         }
 
+        if (requestModel.state !== undefined && !isValidOpenDataDIDStateFilter(requestModel.state)) {
+            return {
+                status: 'error',
+                code: 400,
+                name: 'Invalid Request',
+                error: 'INVALID_REQUEST',
+                message: 'State must be draft, public or suspended',
+            };
+        }
+
         return undefined;
     }
 
@@ -63,44 +74,13 @@ class ListOpenDataDIDsUseCase
         return this.gateway.listOpenDataDIDs(requestModel.rucioAuthToken, requestModel.limit, requestModel.offset, requestModel.state);
     }
 
-    handleGatewayError(error: ListOpenDataDIDsDTO): ListOpenDataDIDsError {
-        let errorType: ListOpenDataDIDsError['error'];
-
-        if (error.errorType === 'opendata_unsupported') {
-            return {
-                status: 'error',
-                code: error.errorCode ?? 404,
-                name: error.errorName ?? 'OpenData Unsupported',
-                error: 'FEATURE_UNSUPPORTED',
-                message: error.errorMessage ?? 'OpenData is not supported by this Rucio server.',
-            };
-        }
-
-        switch (error.errorCode) {
-            case 400:
-                errorType = 'INVALID_REQUEST';
-                break;
-
-            case 401:
-            case 403:
-                errorType = 'INVALID_AUTH';
-                break;
-
-            case 404:
-                errorType = 'NOT_FOUND';
-                break;
-
-            default:
-                errorType = 'UNKNOWN_ERROR';
-                break;
-        }
-
+    handleGatewayError(dto: ListOpenDataDIDsDTO): ListOpenDataDIDsError {
         return {
             status: 'error',
-            code: error.errorCode ?? 500,
-            name: error.errorName ?? 'Gateway Error',
-            error: errorType,
-            message: error.errorMessage ?? 'Unknown error',
+            code: dto.errorCode ?? 500,
+            name: dto.errorName ?? 'Gateway Error',
+            error: mapOpenDataErrorType(dto),
+            message: dto.errorMessage ?? 'Unknown error',
         };
     }
 

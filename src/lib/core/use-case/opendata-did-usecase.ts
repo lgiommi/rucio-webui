@@ -6,6 +6,7 @@ import { OpenDataDIDDTO } from '@/lib/core/dto/opendata-dto';
 import { OpenDataDIDInputPort, type OpenDataDIDOutputPort } from '@/lib/core/port/primary/opendata-did-ports';
 import type OpenDataGatewayOutputPort from '@/lib/core/port/secondary/opendata-gateway-output-port';
 import { OpenDataDIDError, OpenDataDIDRequest, OpenDataDIDResponse } from '@/lib/core/usecase-models/opendata-did-usecase-models';
+import { mapOpenDataErrorType } from '@/lib/core/use-case/opendata-error-mapper';
 
 @injectable()
 class OpenDataDIDUseCase
@@ -47,41 +48,34 @@ class OpenDataDIDUseCase
             };
         }
 
+        if (requestModel.includeDownloadUrls && requestModel.includeFiles === false) {
+            return {
+                status: 'error',
+                code: 400,
+                name: 'Invalid Request',
+                error: 'INVALID_REQUEST',
+                message: 'Download URLs require files to be included',
+            };
+        }
+
         return undefined;
     }
 
     async makeGatewayRequest(requestModel: AuthenticatedRequestModel<OpenDataDIDRequest>): Promise<OpenDataDIDDTO> {
-        return this.gateway.getOpenDataDID(requestModel.rucioAuthToken, requestModel.scope, requestModel.did);
+        return this.gateway.getOpenDataDID(requestModel.rucioAuthToken, requestModel.scope, requestModel.did, {
+            includeFiles: requestModel.includeFiles ?? true,
+            includeMeta: requestModel.includeMeta ?? true,
+            includeDownloadUrls: requestModel.includeDownloadUrls ?? false,
+        });
     }
 
-    handleGatewayError(error: OpenDataDIDDTO): OpenDataDIDError {
-        let errorType: OpenDataDIDError['error'];
-
-        switch (error.errorCode) {
-            case 400:
-                errorType = 'INVALID_REQUEST';
-                break;
-
-            case 401:
-            case 403:
-                errorType = 'INVALID_AUTH';
-                break;
-
-            case 404:
-                errorType = 'NOT_FOUND';
-                break;
-
-            default:
-                errorType = 'UNKNOWN_ERROR';
-                break;
-        }
-
+    handleGatewayError(dto: OpenDataDIDDTO): OpenDataDIDError {
         return {
             status: 'error',
-            code: error.errorCode ?? 500,
-            name: error.errorName ?? 'Gateway Error',
-            error: errorType,
-            message: error.errorMessage ?? 'Unknown error',
+            code: dto.errorCode ?? 500,
+            name: dto.errorName ?? 'Gateway Error',
+            error: mapOpenDataErrorType(dto),
+            message: dto.errorMessage ?? 'Unknown error',
         };
     }
 
@@ -98,6 +92,7 @@ class OpenDataDIDUseCase
                 doi: dto.doi,
                 record_id: dto.record_id,
                 files: dto.files,
+                files_summary: dto.files_summary,
                 meta: dto.meta,
             },
             status: 'success',

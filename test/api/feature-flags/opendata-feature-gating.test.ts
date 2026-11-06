@@ -1,28 +1,57 @@
-import CONTROLLERS from '@/lib/infrastructure/ioc/ioc-symbols-controllers';
-import { withFeature } from '@/lib/infrastructure/adapters/with-feature';
+import { NextRequest } from 'next/server';
 
-jest.mock('@/lib/infrastructure/adapters/with-feature', () => ({
-    withFeature: jest.fn((_controller: symbol, handler: (...args: unknown[]) => unknown) => handler),
-}));
+// jsdom does not always provide Response.json.
+if (typeof (global.Response as { json?: unknown }).json !== 'function') {
+    (
+        global.Response as unknown as {
+            json: (data: unknown, init?: ResponseInit) => Response;
+        }
+    ).json = (data, init) =>
+        new Response(JSON.stringify(data), {
+            ...init,
+            headers: {
+                'content-type': 'application/json',
+            },
+        });
+}
+
+import { withFeature } from '@/lib/infrastructure/adapters/with-feature';
+import CONTROLLERS from '@/lib/infrastructure/ioc/ioc-symbols-controllers';
 
 describe('OpenData feature gating', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    const originalValue = process.env.FEATURE_OPENDATA;
+
+    afterEach(() => {
+        if (originalValue === undefined) {
+            delete process.env.FEATURE_OPENDATA;
+        } else {
+            process.env.FEATURE_OPENDATA = originalValue;
+        }
     });
 
-    describe('API routes', () => {
-        it('protects the get OpenData DID API route', async () => {
-            await import('@/app/api/feature/get-opendata-did/route');
+    const controllers = [CONTROLLERS.OPENDATA_DID, CONTROLLERS.LIST_OPENDATA_DIDS];
 
-            expect(withFeature).toHaveBeenCalledTimes(1);
-            expect(withFeature).toHaveBeenCalledWith(CONTROLLERS.OPENDATA_DID, expect.any(Function));
-        });
+    it.each(controllers)('returns 404 when OpenData is disabled by default', async controller => {
+        delete process.env.FEATURE_OPENDATA;
 
-        it('protects the list OpenData DIDs API route', async () => {
-            await import('@/app/api/feature/list-opendata-dids/route');
+        const handler = jest.fn(async () => new Response('ok', { status: 200 }));
 
-            expect(withFeature).toHaveBeenCalledTimes(1);
-            expect(withFeature).toHaveBeenCalledWith(CONTROLLERS.LIST_OPENDATA_DIDS, expect.any(Function));
-        });
+        const wrapped = withFeature(controller, handler);
+        const response = await wrapped(new NextRequest('http://localhost/api/feature/test'));
+
+        expect(response.status).toBe(404);
+        expect(handler).not.toHaveBeenCalled();
+    });
+
+    it.each(controllers)('executes the handler when OpenData is enabled', async controller => {
+        process.env.FEATURE_OPENDATA = 'true';
+
+        const handler = jest.fn(async () => new Response('ok', { status: 200 }));
+
+        const wrapped = withFeature(controller, handler);
+        const response = await wrapped(new NextRequest('http://localhost/api/feature/test'));
+
+        expect(response.status).toBe(200);
+        expect(handler).toHaveBeenCalledTimes(1);
     });
 });

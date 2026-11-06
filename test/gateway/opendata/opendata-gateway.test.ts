@@ -42,10 +42,10 @@ describe('RucioOpenDataGateway', () => {
                     total: 0,
                     offset: 0,
                     dids: [],
-                    errorName: 'OpenData Unsupported',
+                    errorName: 'Not Found',
                     errorType: 'opendata_unsupported',
                     errorCode: 404,
-                    errorMessage: 'OpenData is not supported by this Rucio server.',
+                    errorMessage: 'The requested resource was not found.',
                 }),
             );
         });
@@ -68,12 +68,45 @@ describe('RucioOpenDataGateway', () => {
 
             const dto = await gateway.listOpenDataDIDs('test-token', 50, 0);
 
-            expect(dto).toEqual(gatewayError);
+            expect(dto).toEqual({
+                ...gatewayError,
+                errorType: 'opendata_error',
+            });
         });
     });
 
     describe('getOpenDataDID', () => {
-        it('keeps a 404 for a single DID as a regular not-found error', async () => {
+        it('maps OpenDataDataIdentifierNotFound to opendata_not_found', async () => {
+            jest.spyOn(GetOpenDataDIDEndpoint.prototype, 'fetch').mockResolvedValue({
+                status: 'error',
+                scope: 'mock',
+                name: 'missing.root',
+                files: [],
+                meta: {},
+                errorName: 'Not Found',
+                errorType: 'gateway_endpoint_error',
+                errorCode: 404,
+                errorClass: 'OpenDataDataIdentifierNotFound',
+                errorMessage: 'The requested resource was not found.',
+            });
+
+            const gateway = new RucioOpenDataGateway();
+
+            const dto = await gateway.getOpenDataDID('test-token', 'mock', 'missing.root');
+
+            expect(dto).toEqual(
+                expect.objectContaining({
+                    status: 'error',
+                    errorCode: 404,
+                    errorClass: 'OpenDataDataIdentifierNotFound',
+                    errorType: 'opendata_not_found',
+                }),
+            );
+
+            expect(dto.errorType).not.toBe('opendata_unsupported');
+        });
+
+        it('maps an unclassified HTTP 404 to opendata_unsupported', async () => {
             jest.spyOn(GetOpenDataDIDEndpoint.prototype, 'fetch').mockResolvedValue({
                 status: 'error',
                 scope: 'mock',
@@ -94,11 +127,9 @@ describe('RucioOpenDataGateway', () => {
                 expect.objectContaining({
                     status: 'error',
                     errorCode: 404,
-                    errorType: 'gateway_endpoint_error',
+                    errorType: 'opendata_unsupported',
                 }),
             );
-
-            expect(dto.errorType).not.toBe('opendata_unsupported');
         });
     });
 });

@@ -97,6 +97,25 @@ describe('OpenDataDIDUseCase', () => {
 
             expect(openDataDIDUseCase.validateRequestModel(request)).toBeUndefined();
         });
+
+        it('does not assume an unclassified HTTP 404 means DID not found', () => {
+            const dto = makeOpenDataErrorDTO(404);
+
+            const result = openDataDIDUseCase.handleGatewayError(dto);
+
+            expect(result.status).toBe('error');
+            expect(result.code).toBe(404);
+            expect(result.error).toBe('UNKNOWN_ERROR');
+        });
+
+        it('maps unsupported OpenData to FEATURE_UNSUPPORTED', () => {
+            const dto = makeOpenDataErrorDTO(404);
+            dto.errorType = 'opendata_unsupported';
+
+            const result = openDataDIDUseCase.handleGatewayError(dto);
+
+            expect(result.error).toBe('FEATURE_UNSUPPORTED');
+        });
     });
 
     describe('gateway error handling', () => {
@@ -107,7 +126,13 @@ describe('OpenDataDIDUseCase', () => {
             [404, 'NOT_FOUND'],
             [500, 'UNKNOWN_ERROR'],
         ] as const)('maps gateway HTTP %i to %s', (errorCode, expectedError) => {
-            const result = openDataDIDUseCase.handleGatewayError(makeOpenDataErrorDTO(errorCode));
+            const dto = makeOpenDataErrorDTO(errorCode);
+
+            if (errorCode === 404) {
+                dto.errorType = 'opendata_not_found';
+            }
+
+            const result = openDataDIDUseCase.handleGatewayError(dto);
 
             expect(result).toEqual({
                 status: 'error',
@@ -219,7 +244,13 @@ describe('ListOpenDataDIDsUseCase', () => {
             [404, 'NOT_FOUND'],
             [500, 'UNKNOWN_ERROR'],
         ] as const)('maps gateway HTTP %i to %s', (errorCode, expectedError) => {
-            const result = listOpenDataDIDsUseCase.handleGatewayError(makeListErrorDTO(errorCode));
+            const dto = makeListErrorDTO(errorCode);
+
+            if (errorCode === 404) {
+                dto.errorType = 'opendata_not_found';
+            }
+
+            const result = listOpenDataDIDsUseCase.handleGatewayError(dto);
 
             expect(result).toEqual({
                 status: 'error',

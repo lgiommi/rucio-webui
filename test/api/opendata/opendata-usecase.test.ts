@@ -32,6 +32,53 @@ const makeListErrorDTO = (errorCode: number): ListOpenDataDIDsDTO => ({
     errorMessage: 'Request failed',
 });
 
+function testGatewayErrorHandling<T extends OpenDataDIDDTO | ListOpenDataDIDsDTO>(
+    makeDTO: (errorCode: number) => T,
+    handleError: (dto: T) => unknown,
+): void {
+    it.each([
+        [400, 'INVALID_REQUEST'],
+        [401, 'INVALID_AUTH'],
+        [403, 'INVALID_AUTH'],
+        [404, 'NOT_FOUND'],
+        [500, 'UNKNOWN_ERROR'],
+    ] as const)('maps gateway HTTP %i to %s', (errorCode, expectedError) => {
+        const dto = makeDTO(errorCode);
+
+        if (errorCode === 404) {
+            dto.errorType = 'opendata_not_found';
+        }
+
+        const result = handleError(dto);
+
+        expect(result).toEqual({
+            status: 'error',
+            code: errorCode,
+            name: 'Gateway Error',
+            error: expectedError,
+            message: 'Request failed',
+        });
+    });
+
+    it('uses fallback values when gateway error details are missing', () => {
+        const dto = makeDTO(500);
+
+        delete dto.errorCode;
+        delete dto.errorName;
+        delete dto.errorMessage;
+
+        const result = handleError(dto);
+
+        expect(result).toEqual({
+            status: 'error',
+            code: 500,
+            name: 'Gateway Error',
+            error: 'UNKNOWN_ERROR',
+            message: 'Unknown error',
+        });
+    });
+}
+
 describe('OpenDataDIDUseCase', () => {
     describe('request validation', () => {
         it('rejects a missing scope', () => {
@@ -119,49 +166,7 @@ describe('OpenDataDIDUseCase', () => {
     });
 
     describe('gateway error handling', () => {
-        it.each([
-            [400, 'INVALID_REQUEST'],
-            [401, 'INVALID_AUTH'],
-            [403, 'INVALID_AUTH'],
-            [404, 'NOT_FOUND'],
-            [500, 'UNKNOWN_ERROR'],
-        ] as const)('maps gateway HTTP %i to %s', (errorCode, expectedError) => {
-            const dto = makeOpenDataErrorDTO(errorCode);
-
-            if (errorCode === 404) {
-                dto.errorType = 'opendata_not_found';
-            }
-
-            const result = openDataDIDUseCase.handleGatewayError(dto);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: errorCode,
-                name: 'Gateway Error',
-                error: expectedError,
-                message: 'Request failed',
-            });
-        });
-
-        it('uses fallback values when gateway error details are missing', () => {
-            const dto: OpenDataDIDDTO = {
-                status: 'error',
-                scope: '',
-                name: '',
-                files: [],
-                meta: {},
-            };
-
-            const result = openDataDIDUseCase.handleGatewayError(dto);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: 500,
-                name: 'Gateway Error',
-                error: 'UNKNOWN_ERROR',
-                message: 'Unknown error',
-            });
-        });
+        testGatewayErrorHandling(makeOpenDataErrorDTO, dto => openDataDIDUseCase.handleGatewayError(dto));
     });
 });
 
@@ -237,29 +242,7 @@ describe('ListOpenDataDIDsUseCase', () => {
     });
 
     describe('gateway error handling', () => {
-        it.each([
-            [400, 'INVALID_REQUEST'],
-            [401, 'INVALID_AUTH'],
-            [403, 'INVALID_AUTH'],
-            [404, 'NOT_FOUND'],
-            [500, 'UNKNOWN_ERROR'],
-        ] as const)('maps gateway HTTP %i to %s', (errorCode, expectedError) => {
-            const dto = makeListErrorDTO(errorCode);
-
-            if (errorCode === 404) {
-                dto.errorType = 'opendata_not_found';
-            }
-
-            const result = listOpenDataDIDsUseCase.handleGatewayError(dto);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: errorCode,
-                name: 'Gateway Error',
-                error: expectedError,
-                message: 'Request failed',
-            });
-        });
+        testGatewayErrorHandling(makeListErrorDTO, dto => listOpenDataDIDsUseCase.handleGatewayError(dto));
 
         it('maps opendata_unsupported to FEATURE_UNSUPPORTED', () => {
             const dto: ListOpenDataDIDsDTO = {
@@ -281,25 +264,6 @@ describe('ListOpenDataDIDsUseCase', () => {
                 name: 'OpenData Unsupported',
                 error: 'FEATURE_UNSUPPORTED',
                 message: 'OpenData is not supported by this Rucio server.',
-            });
-        });
-
-        it('uses fallback values when gateway error details are missing', () => {
-            const dto: ListOpenDataDIDsDTO = {
-                status: 'error',
-                total: 0,
-                offset: 0,
-                dids: [],
-            };
-
-            const result = listOpenDataDIDsUseCase.handleGatewayError(dto);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: 500,
-                name: 'Gateway Error',
-                error: 'UNKNOWN_ERROR',
-                message: 'Unknown error',
             });
         });
     });

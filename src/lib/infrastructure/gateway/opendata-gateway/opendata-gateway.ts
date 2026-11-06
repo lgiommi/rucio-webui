@@ -8,7 +8,7 @@ import type { OpenDataDIDStateFilter } from '@/lib/core/entity/opendata';
 
 @injectable()
 export default class RucioOpenDataGateway implements OpenDataGatewayOutputPort {
-    private classifyOpenDataError<T extends OpenDataDIDDTO | ListOpenDataDIDsDTO>(dto: T): T {
+    private classifyOpenDataError<T extends OpenDataDIDDTO | ListOpenDataDIDsDTO>(dto: T, includeDownloadUrls = false): T {
         if (dto.status !== 'error') {
             return dto;
         }
@@ -25,12 +25,20 @@ export default class RucioOpenDataGateway implements OpenDataGatewayOutputPort {
                 errorType = 'opendata_download_unavailable';
                 break;
 
+            case 'OpenDataError':
+                if (includeDownloadUrls && dto.errorCode === 500) {
+                    errorType = 'opendata_download_unavailable';
+                }
+                break;
+
             case 'NoSectionError':
                 errorType = 'opendata_configuration_error';
                 break;
 
             default:
-                if (dto.errorCode === 404 && !dto.errorClass) {
+                if (includeDownloadUrls && dto.errorCode === 503) {
+                    errorType = 'opendata_download_unavailable';
+                } else if (dto.errorCode === 404 && !dto.errorClass) {
                     errorType = 'opendata_unsupported';
                 }
                 break;
@@ -48,7 +56,7 @@ export default class RucioOpenDataGateway implements OpenDataGatewayOutputPort {
 
             const dto: OpenDataDIDDTO = await endpoint.fetch();
 
-            return this.classifyOpenDataError(dto);
+            return this.classifyOpenDataError(dto, options.includeDownloadUrls === true);
         } catch (error) {
             const errorDTO: OpenDataDIDDTO = {
                 status: 'error',

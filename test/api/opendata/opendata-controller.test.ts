@@ -126,6 +126,33 @@ describe('OpenData DID controller integration', () => {
         expect(result.body.errorType).toBe('DOWNLOAD_UNAVAILABLE');
     });
 
+    it.each([
+        [500, 'OpenDataError'],
+        [503, 'ResourceTemporaryUnavailable'],
+        [503, undefined],
+    ] as const)('returns DOWNLOAD_UNAVAILABLE for HTTP %i with ExceptionClass %s', async (status, errorClass) => {
+        const endpoint = mockEndpoint(status, {
+            ...(errorClass && { ExceptionClass: errorClass }),
+            ExceptionMessage: 'Download URL generation failed',
+        });
+
+        endpoint.requestValidator = async request => {
+            const params = new URL(request.url).searchParams;
+
+            return params.get('meta') === '0' && params.get('files') === '1' && params.get('download_urls') === '1';
+        };
+
+        const result = await execute(endpoint, {
+            includeFiles: true,
+            includeMeta: false,
+            includeDownloadUrls: true,
+        });
+
+        expect(result.status).toBe(status);
+        expect(result.body.status).toBe('error');
+        expect(result.body.errorType).toBe('DOWNLOAD_UNAVAILABLE');
+    });
+
     it('returns CONFIGURATION_ERROR for missing OpenData configuration', async () => {
         const result = await execute(
             mockEndpoint(400, {
@@ -231,5 +258,23 @@ describe('OpenData DID controller integration', () => {
         expect(details.status).toBe(200);
         expect(details.body.meta).toEqual({ experiment: 'ATLAS' });
         expect(details.body.files).toHaveLength(1);
+    });
+
+    it('does not classify metadata HTTP 500 errors as download failures', async () => {
+        const result = await execute(
+            mockEndpoint(500, {
+                ExceptionClass: 'OpenDataError',
+                ExceptionMessage: 'Internal OpenData error',
+            }),
+            {
+                includeFiles: true,
+                includeMeta: true,
+                includeDownloadUrls: false,
+            },
+        );
+
+        expect(result.status).toBe(500);
+        expect(result.body.status).toBe('error');
+        expect(result.body.errorType).toBe('UNKNOWN_ERROR');
     });
 });

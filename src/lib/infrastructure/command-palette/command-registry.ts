@@ -40,7 +40,13 @@ import {
  *   accounts and my-account entries.
  * @param openDataEnabled - Whether the OpenData feature is enabled.
  */
-export function getNavigationCommands(account?: string, canViewApprovalQueue?: boolean, isAdmin?: boolean, accountsEnabled?: boolean, openDataEnabled?: boolean): CommandItem[] {
+export function getNavigationCommands(
+    account?: string,
+    canViewApprovalQueue?: boolean,
+    isAdmin?: boolean,
+    accountsEnabled?: boolean,
+    openDataEnabled?: boolean,
+): CommandItem[] {
     const commands: CommandItem[] = [
         {
             id: 'nav-dashboard',

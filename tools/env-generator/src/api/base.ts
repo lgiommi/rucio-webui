@@ -108,6 +108,7 @@ export class WebUIEnvTemplateCompiler {
       'FEATURE_ACCOUNTS_MANAGE_IDENTITIES': 'true',
       'FEATURE_ACCOUNTS_MANAGE_ATTRIBUTES': 'true',
       'FEATURE_ACCOUNTS_MANAGE_QUOTAS': 'true',
+      'FEATURE_OPENDATA': 'false',
       'FEATURE_DIDS_METADATA': 'true',
       'FEATURE_DIDS_MUTATE': 'true',
       'FEATURE_DIDS_AMI_TAGS': 'false',

@@ -1,9 +1,11 @@
 import { ListOpenDataDIDsDTO, OpenDataDIDListItemDTO } from '@/lib/core/dto/opendata-dto';
 import { BaseEndpoint } from '@/lib/sdk/gateway-endpoints';
 import { HTTPRequest } from '@/lib/sdk/http';
+import type { OpenDataDIDStateFilter } from '@/lib/core/entity/opendata';
+import { normalizeOpenDataDIDState } from '@/lib/core/entity/opendata';
 
 export default class ListOpenDataDIDsEndpoint extends BaseEndpoint<ListOpenDataDIDsDTO> {
-    constructor(private rucioAuthToken: string, private limit?: number, private offset?: number, private state?: string) {
+    constructor(private rucioAuthToken: string, private limit?: number, private offset?: number, private state?: OpenDataDIDStateFilter) {
         super();
     }
 
@@ -64,7 +66,7 @@ export default class ListOpenDataDIDsEndpoint extends BaseEndpoint<ListOpenDataD
             response.dids?.map(did => ({
                 scope: did.scope,
                 name: did.name,
-                state: did.state,
+                state: normalizeOpenDataDIDState(did.state),
                 created_at: did.created_at,
                 updated_at: did.updated_at,
             })) ?? [];

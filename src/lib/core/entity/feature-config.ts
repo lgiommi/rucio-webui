@@ -31,6 +31,7 @@ export const FEATURE_REGISTRY = {
     'accounts.manage.attributes': { default: true, parent: 'accounts.manage', pages: [] },
     // Set and remove quotas (account limits)
     'accounts.manage.quotas': { default: true, parent: 'accounts.manage', pages: [] },
+    opendata: { default: false, pages: [] },
     'dids.metadata': { default: true, pages: [] },
     'dids.mutate': { default: true, pages: [] },
     // ATLAS-only: AMI tag chips on DID views + /api/feature/get-ami-tag-info

@@ -81,57 +81,55 @@ function testGatewayErrorHandling<T extends OpenDataDIDDTO | ListOpenDataDIDsDTO
 
 describe('OpenDataDIDUseCase', () => {
     describe('request validation', () => {
-        it('rejects a missing scope', () => {
-            const request = {
-                scope: '',
-                did: 'dataset',
-                rucioAuthToken: 'token',
-            } as AuthenticatedRequestModel<OpenDataDIDRequest>;
-
-            const result = openDataDIDUseCase.validateRequestModel(request);
+        it.each([
+            {
+                description: 'missing scope',
+                request: {
+                    scope: '',
+                    did: 'dataset',
+                    rucioAuthToken: 'token',
+                },
+                expected: {
+                    code: 400,
+                    name: 'Invalid Request',
+                    error: 'INVALID_REQUEST',
+                    message: 'Scope is required',
+                },
+            },
+            {
+                description: 'missing DID',
+                request: {
+                    scope: 'mock',
+                    did: '',
+                    rucioAuthToken: 'token',
+                },
+                expected: {
+                    code: 400,
+                    name: 'Invalid Request',
+                    error: 'INVALID_REQUEST',
+                    message: 'DID is required',
+                },
+            },
+            {
+                description: 'missing authentication token',
+                request: {
+                    scope: 'mock',
+                    did: 'dataset',
+                    rucioAuthToken: '',
+                },
+                expected: {
+                    code: 401,
+                    name: 'Authentication Error',
+                    error: 'INVALID_AUTH',
+                    message: 'Auth token is required',
+                },
+            },
+        ])('rejects a $description', ({ request, expected }) => {
+            const result = openDataDIDUseCase.validateRequestModel(request as AuthenticatedRequestModel<OpenDataDIDRequest>);
 
             expect(result).toEqual({
                 status: 'error',
-                code: 400,
-                name: 'Invalid Request',
-                error: 'INVALID_REQUEST',
-                message: 'Scope is required',
-            });
-        });
-
-        it('rejects a missing DID', () => {
-            const request = {
-                scope: 'mock',
-                did: '',
-                rucioAuthToken: 'token',
-            } as AuthenticatedRequestModel<OpenDataDIDRequest>;
-
-            const result = openDataDIDUseCase.validateRequestModel(request);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: 400,
-                name: 'Invalid Request',
-                error: 'INVALID_REQUEST',
-                message: 'DID is required',
-            });
-        });
-
-        it('rejects a missing authentication token', () => {
-            const request = {
-                scope: 'mock',
-                did: 'dataset',
-                rucioAuthToken: '',
-            } as AuthenticatedRequestModel<OpenDataDIDRequest>;
-
-            const result = openDataDIDUseCase.validateRequestModel(request);
-
-            expect(result).toEqual({
-                status: 'error',
-                code: 401,
-                name: 'Authentication Error',
-                error: 'INVALID_AUTH',
-                message: 'Auth token is required',
+                ...expected,
             });
         });
 

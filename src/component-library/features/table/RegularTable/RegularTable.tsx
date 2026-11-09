@@ -12,6 +12,7 @@ import { useTheme } from 'next-themes';
 export interface RegularTableProps extends AgGridReactProps {
     tableRef: RefObject<AgGridReact | null>;
     paginationPageSize?: number;
+    showPaginationPanel?: boolean;
 }
 
 // This implementation of the pagination panel uses refs to prevent excessive state updates
@@ -66,7 +67,7 @@ export const SimplePaginationPanel = (props: {
 
 export const RegularTable = (props: RegularTableProps) => {
     // Destructure custom props to prevent them from being passed to AgGridReact
-    const { tableRef, paginationPageSize, ...gridProps } = props;
+    const { tableRef, paginationPageSize, showPaginationPanel = true, ...gridProps } = props;
     const [isMounted, setIsMounted] = useState(false);
     const [isContainerReady, setIsContainerReady] = useState(false);
     // Refs for controlling the pagination panel
@@ -99,6 +100,9 @@ export const RegularTable = (props: RegularTableProps) => {
     };
 
     const onPaginationChanged = () => {
+        if (!showPaginationPanel) {
+            return;
+        }
         const gridApi = props.tableRef.current?.api;
         // Make sure the table is loaded before updating the pagination component to avoid flickering
         if (isTableLoaded && gridApi) {
@@ -225,15 +229,17 @@ export const RegularTable = (props: RegularTableProps) => {
                     <div></div>
                 )}
             </div>
-            <SimplePaginationPanel
-                currentPageRef={currentPageRef}
-                totalPagesRef={totalPagesRef}
-                nextPageRef={nextPageRef}
-                previousPageRef={previousPageRef}
-                containerRef={containerRef}
-                firstPageRef={firstPageRef}
-                lastPageRef={lastPageRef}
-            />
+            {showPaginationPanel && (
+                <SimplePaginationPanel
+                    currentPageRef={currentPageRef}
+                    totalPagesRef={totalPagesRef}
+                    nextPageRef={nextPageRef}
+                    previousPageRef={previousPageRef}
+                    containerRef={containerRef}
+                    firstPageRef={firstPageRef}
+                    lastPageRef={lastPageRef}
+                />
+            )}
         </div>
     );
 };

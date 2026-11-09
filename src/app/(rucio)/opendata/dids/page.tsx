@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import { ListOpenDataDIDs } from '@/component-library/pages/DID/list/ListOpenDataDIDs';
 import { requireFeature } from '@/lib/infrastructure/feature-flags/require-feature';
 
@@ -13,7 +15,15 @@ export default async function Page() {
                 </header>
 
                 <section aria-label="OpenData DIDs">
-                    <ListOpenDataDIDs />
+                    <Suspense
+                        fallback={
+                            <p role="status" className="text-neutral-600 dark:text-neutral-400">
+                                Loading OpenData DIDs...
+                            </p>
+                        }
+                    >
+                        <ListOpenDataDIDs />
+                    </Suspense>
                 </section>
             </div>
         </main>

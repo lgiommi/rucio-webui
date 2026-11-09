@@ -1,26 +1,28 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, SelectionChangedEvent, ValueGetterParams } from 'ag-grid-community';
+import type { ColDef, ICellRendererParams, SelectionChangedEvent, ValueGetterParams } from 'ag-grid-community';
 
 import { HiFilter, HiOutlineChevronDoubleLeft, HiOutlineChevronDoubleRight, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi';
-
 import { HiChevronDown, HiChevronUp } from 'react-icons/hi2';
 
 import { Button } from '@/component-library/atoms/form/button';
 import { Input } from '@/component-library/atoms/form/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/component-library/atoms/form/select';
 
 import { SearchButton } from '@/component-library/features/search/SearchButton';
-
 import { RegularTable } from '@/component-library/features/table/RegularTable/RegularTable';
-
 import { DefaultTextFilterParams } from '@/component-library/features/utils/filter-parameters';
-
 import { ListDIDMeta } from '@/component-library/pages/DID/list/meta/ListDIDMeta';
 
-import { DIDMetaViewModel } from '@/lib/infrastructure/data/view-model/did';
+import type { DIDMetaViewModel } from '@/lib/infrastructure/data/view-model/did';
+import { QUERY_KEYS } from '@/lib/infrastructure/query/query-keys';
 
 type OpenDataDIDListItem = {
     scope: string;
@@ -33,6 +35,7 @@ type OpenDataDIDListItem = {
 type ListOpenDataDIDsResponse = {
     status: 'success' | 'error';
     message?: string;
+    errorType?: string;
     total: number;
     offset: number;
     dids: OpenDataDIDListItem[];
@@ -41,52 +44,255 @@ type ListOpenDataDIDsResponse = {
 type GetOpenDataDIDResponse = {
     status: 'success' | 'error';
     message?: string;
+    errorType?: string;
     scope: string;
     name: string;
     state?: string;
 };
 
+type OpenDataSearch =
+    | {
+          kind: 'list';
+          offset: number;
+          limit: number;
+          state: string;
+      }
+    | {
+          kind: 'single';
+          scope: string;
+          name: string;
+          state: string;
+          limit: number;
+      };
+
+type OpenDataSearchResult = {
+    dids: OpenDataDIDListItem[];
+    total: number;
+    offset: number;
+};
+
 const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 500;
+const EMPTY_DIDS: OpenDataDIDListItem[] = [];
 
-const OpenDataFilterField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const VALID_STATES = ['draft', 'public', 'suspended'] as const;
+
+/**
+ * Read applied filters from the URL.
+ *
+ * Invalid pagination values fall back to safe defaults.
+ * A single-DID query is selected only when scope and name are both set.
+ */
+function parseOpenDataSearch(params: URLSearchParams): OpenDataSearch {
+    const requestedLimit = Number(params.get('limit') ?? DEFAULT_LIMIT);
+    const limit = Number.isInteger(requestedLimit) && requestedLimit >= 1 && requestedLimit <= MAX_LIMIT ? requestedLimit : DEFAULT_LIMIT;
+
+    const requestedState = (params.get('state') ?? '').trim().toLowerCase();
+    const state = VALID_STATES.some(value => value === requestedState) ? requestedState : '';
+
+    const scope = (params.get('scope') ?? '').trim();
+    const name = (params.get('name') ?? '').trim();
+
+    if (scope && name) {
+        return {
+            kind: 'single',
+            scope,
+            name,
+            state,
+            limit,
+        };
+    }
+
+    const requestedOffset = Number(params.get('offset') ?? 0);
+    const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
+
+    return {
+        kind: 'list',
+        offset,
+        limit,
+        state,
+    };
+}
+
+/**
+ * Build a shareable URL without discarding unrelated query parameters.
+ */
+function buildOpenDataSearchUrl(pathname: string, currentQuery: string, search: OpenDataSearch): string {
+    const params = new URLSearchParams(currentQuery);
+
+    for (const key of ['scope', 'name', 'state', 'limit', 'offset']) {
+        params.delete(key);
+    }
+
+    if (search.kind === 'single') {
+        params.set('scope', search.scope);
+        params.set('name', search.name);
+    } else if (search.offset > 0) {
+        params.set('offset', String(search.offset));
+    }
+
+    if (search.state) {
+        params.set('state', search.state);
+    }
+
+    if (search.limit !== DEFAULT_LIMIT) {
+        params.set('limit', String(search.limit));
+    }
+
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+}
+
+function getOpenDataErrorMessage(response: { errorType?: string } | null, single: boolean): string {
+    switch (response?.errorType) {
+        case 'FEATURE_UNSUPPORTED':
+            return 'OpenData is not supported by this Rucio deployment.';
+        case 'NOT_FOUND':
+            return single ? 'The requested OpenData DID was not found.' : 'No OpenData DIDs were found.';
+        case 'CONFIGURATION_ERROR':
+            return 'OpenData is not configured correctly on the server.';
+        case 'INVALID_AUTH':
+            return 'The request could not be authenticated.';
+        case 'INVALID_REQUEST':
+            return 'The OpenData request is invalid.';
+        default:
+            return single ? 'Unable to retrieve the requested OpenData DID.' : 'Unable to retrieve OpenData DIDs.';
+    }
+}
+
+async function fetchOpenDataDIDs(search: OpenDataSearch, signal: AbortSignal): Promise<OpenDataSearchResult> {
+    if (search.kind === 'single') {
+        const params = new URLSearchParams({
+            scope: search.scope,
+            name: search.name,
+            files: '0',
+            meta: '0',
+        });
+
+        const response = await fetch(`/api/feature/get-opendata-did?${params.toString()}`, { signal });
+
+        const data = (await response.json().catch(() => null)) as GetOpenDataDIDResponse | null;
+
+        if (!response.ok || !data || data.status !== 'success') {
+            throw new Error(getOpenDataErrorMessage(data, true));
+        }
+
+        const matchesState = !search.state || data.state?.toLowerCase() === search.state.toLowerCase();
+
+        const dids: OpenDataDIDListItem[] = matchesState
+            ? [
+                  {
+                      scope: data.scope,
+                      name: data.name,
+                      state: data.state,
+                  },
+              ]
+            : [];
+
+        return {
+            dids,
+            total: dids.length,
+            offset: 0,
+        };
+    }
+
+    const params = new URLSearchParams({
+        limit: String(search.limit),
+        offset: String(search.offset),
+    });
+
+    if (search.state) {
+        params.set('state', search.state);
+    }
+
+    const response = await fetch(`/api/feature/list-opendata-dids?${params.toString()}`, { signal });
+
+    const data = (await response.json().catch(() => null)) as ListOpenDataDIDsResponse | null;
+
+    if (!response.ok || !data || data.status !== 'success') {
+        throw new Error(getOpenDataErrorMessage(data, false));
+    }
+
+    return {
+        dids: data.dids,
+        total: data.total,
+        offset: data.offset,
+    };
+}
+
+const OpenDataFilterField = ({ id, label, children }: { id: string; label: string; children: React.ReactNode }) => (
     <div className="flex flex-col grow">
-        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{label}</label>
-
+        <label htmlFor={id} className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+            {label}
+        </label>
         {children}
     </div>
 );
 
 export const ListOpenDataDIDs = () => {
-    const [dids, setDids] = useState<OpenDataDIDListItem[]>([]);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const queryClient = useQueryClient();
 
-    const [selectedDID, setSelectedDID] = useState<OpenDataDIDListItem | null>(null);
+    const searchParamsString = searchParams?.toString() ?? '';
 
-    const [meta, setMeta] = useState<DIDMetaViewModel>();
+    /*
+     * The URL is the source of truth for applied filters.
+     * This also supports refresh, shared links and browser Back/Forward.
+     */
+    const appliedSearch = useMemo(() => parseOpenDataSearch(new URLSearchParams(searchParamsString)), [searchParamsString]);
 
-    const [isMetaLoading, setIsMetaLoading] = useState(false);
+    /*
+     * Draft fields are separate from applied filters.
+     * Requests are not sent while the user is editing the form.
+     */
+    const [scope, setScope] = useState(appliedSearch.kind === 'single' ? appliedSearch.scope : '');
+    const [name, setName] = useState(appliedSearch.kind === 'single' ? appliedSearch.name : '');
+    const [state, setState] = useState(appliedSearch.state);
+    const [limit, setLimit] = useState(String(appliedSearch.limit));
 
-    const [hasMetaError, setHasMetaError] = useState(false);
-
-    const [total, setTotal] = useState(0);
-    const [offset, setOffset] = useState(0);
-
-    const [scope, setScope] = useState('');
-    const [name, setName] = useState('');
-    const [state, setState] = useState('');
-
-    const [limit, setLimit] = useState(String(DEFAULT_LIMIT));
-
-    const [appliedState, setAppliedState] = useState('');
-
-    const [appliedLimit, setAppliedLimit] = useState(DEFAULT_LIMIT);
-
-    const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-
-    const [isLoading, setIsLoading] = useState(false);
+    const [isFilterExpanded, setIsFilterExpanded] = useState(Boolean(appliedSearch.state) || appliedSearch.limit !== DEFAULT_LIMIT);
 
     const [error, setError] = useState<string | null>(null);
 
+    const [selectedDID, setSelectedDID] = useState<OpenDataDIDListItem | null>(null);
+    const [meta, setMeta] = useState<DIDMetaViewModel>();
+    const [isMetaLoading, setIsMetaLoading] = useState(false);
+    const [hasMetaError, setHasMetaError] = useState(false);
+
     const tableRef = useRef<AgGridReact<OpenDataDIDListItem>>(null);
+
+    const resultsQuery = useQuery<OpenDataSearchResult, Error>({
+        queryKey: [...QUERY_KEYS.OPENDATA_DIDS, appliedSearch],
+        queryFn: ({ signal }) => fetchOpenDataDIDs(appliedSearch, signal),
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+
+    const dids = resultsQuery.data?.dids ?? EMPTY_DIDS;
+    const total = resultsQuery.data?.total ?? 0;
+    const offset = resultsQuery.data?.offset ?? (appliedSearch.kind === 'list' ? appliedSearch.offset : 0);
+    const appliedLimit = appliedSearch.limit;
+    const isLoading = resultsQuery.isFetching;
+
+    /*
+     * Restore the form when navigating with browser Back/Forward
+     * or opening a shared link.
+     */
+    useEffect(() => {
+        setScope(appliedSearch.kind === 'single' ? appliedSearch.scope : '');
+        setName(appliedSearch.kind === 'single' ? appliedSearch.name : '');
+        setState(appliedSearch.state);
+        setLimit(String(appliedSearch.limit));
+        setError(null);
+        setSelectedDID(null);
+        tableRef.current?.api.deselectAll();
+
+        if (appliedSearch.state || appliedSearch.limit !== DEFAULT_LIMIT) {
+            setIsFilterExpanded(true);
+        }
+    }, [appliedSearch]);
 
     const [columnDefs] = useState<ColDef<OpenDataDIDListItem>[]>([
         {
@@ -95,8 +301,24 @@ export const ListOpenDataDIDs = () => {
                 if (!params.data) {
                     return '';
                 }
-
                 return `${params.data.scope}:${params.data.name}`;
+            },
+            cellRenderer: (params: ICellRendererParams<OpenDataDIDListItem>) => {
+                if (!params.data) {
+                    return null;
+                }
+
+                const { scope, name } = params.data;
+
+                return (
+                    <Link
+                        href={`/did/${encodeURIComponent(scope)}/${encodeURIComponent(name)}`}
+                        className="text-blue-700 dark:text-blue-300 underline underline-offset-2 hover:text-blue-900 dark:hover:text-blue-200"
+                        onClick={event => event.stopPropagation()}
+                    >
+                        {scope}:{name}
+                    </Link>
+                );
             },
             flex: 1,
             minWidth: 250,
@@ -113,93 +335,6 @@ export const ListOpenDataDIDs = () => {
         },
     ]);
 
-    const loadDIDs = async (requestedOffset: number, requestedState: string, requestedLimit: number) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const params = new URLSearchParams({
-                limit: String(requestedLimit),
-                offset: String(requestedOffset),
-            });
-
-            if (requestedState.trim()) {
-                params.set('state', requestedState.trim());
-            }
-
-            const response = await fetch(`/api/feature/list-opendata-dids?${params.toString()}`);
-
-            const data = (await response.json()) as ListOpenDataDIDsResponse;
-
-            if (!response.ok || data.status === 'error') {
-                throw new Error(data.message ?? 'Failed to retrieve OpenData DIDs');
-            }
-
-            setDids(data.dids);
-            setTotal(data.total);
-            setOffset(data.offset);
-            setSelectedDID(null);
-        } catch (error) {
-            setDids([]);
-            setTotal(0);
-            setOffset(0);
-            setSelectedDID(null);
-
-            setError(error instanceof Error ? error.message : 'Failed to retrieve OpenData DIDs');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const loadSingleDID = async (requestedScope: string, requestedName: string, requestedState: string) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const params = new URLSearchParams({
-                scope: requestedScope,
-                name: requestedName,
-            });
-
-            const response = await fetch(`/api/feature/get-opendata-did?${params.toString()}`);
-
-            const data = (await response.json()) as GetOpenDataDIDResponse;
-
-            if (!response.ok || data.status === 'error') {
-                throw new Error(data.message ?? 'OpenData DID not found');
-            }
-
-            if (requestedState && data.state?.toLowerCase() !== requestedState.toLowerCase()) {
-                setDids([]);
-                setTotal(0);
-                setOffset(0);
-                setSelectedDID(null);
-                return;
-            }
-
-            setDids([
-                {
-                    scope: data.scope,
-                    name: data.name,
-                    state: data.state,
-                },
-            ]);
-
-            setTotal(1);
-            setOffset(0);
-            setSelectedDID(null);
-        } catch (error) {
-            setDids([]);
-            setTotal(0);
-            setOffset(0);
-            setSelectedDID(null);
-
-            setError(error instanceof Error ? error.message : 'Failed to retrieve OpenData DID');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const onSelectionChanged = (event: SelectionChangedEvent<OpenDataDIDListItem>) => {
         const selectedRows = event.api.getSelectedRows();
 
@@ -211,15 +346,13 @@ export const ListOpenDataDIDs = () => {
     };
 
     /*
-     * Retrieve the normal Rucio DID metadata for the
-     * selected OpenData DID.
-     *
-     * This allows the right-hand panel to reuse the
-     * exact same ListDIDMeta component used by /dids.
+     * Reuse the existing Rucio DID metadata panel.
+     * Abort the request when the selected DID changes.
      */
     useEffect(() => {
+        setMeta(undefined);
+
         if (selectedDID === null) {
-            setMeta(undefined);
             setHasMetaError(false);
             setIsMetaLoading(false);
             return;
@@ -237,19 +370,19 @@ export const ListOpenDataDIDs = () => {
                     name: selectedDID.name,
                 });
 
-                const response = await fetch(`/api/feature/get-did-meta?${params.toString()}`, {
-                    signal: abortController.signal,
-                });
+                const response = await fetch(`/api/feature/get-did-meta?${params.toString()}`, { signal: abortController.signal });
 
                 if (!response.ok) {
-                    throw new Error(response.statusText);
+                    throw new Error('Unable to retrieve DID metadata.');
                 }
 
                 const data = (await response.json()) as DIDMetaViewModel;
 
-                setMeta(data);
-            } catch (error) {
-                if (error instanceof DOMException && error.name === 'AbortError') {
+                if (!abortController.signal.aborted) {
+                    setMeta(data);
+                }
+            } catch {
+                if (abortController.signal.aborted) {
                     return;
                 }
 
@@ -269,9 +402,21 @@ export const ListOpenDataDIDs = () => {
         };
     }, [selectedDID]);
 
-    useEffect(() => {
-        void loadDIDs(0, '', DEFAULT_LIMIT);
-    }, []);
+    const navigateToSearch = (nextSearch: OpenDataSearch) => {
+        const target = buildOpenDataSearchUrl(pathname ?? '/opendata/dids', searchParamsString, nextSearch);
+        const current = searchParamsString ? `${pathname}?${searchParamsString}` : pathname;
+
+        setSelectedDID(null);
+        tableRef.current?.api.deselectAll();
+
+        if (target === current) {
+            // Refresh even when the same filters are submitted again.
+            void resultsQuery.refetch();
+            return;
+        }
+
+        router.push(target, { scroll: false });
+    };
 
     const applyFilters = () => {
         const requestedScope = scope.trim();
@@ -279,7 +424,6 @@ export const ListOpenDataDIDs = () => {
         const requestedState = state.trim();
 
         const hasScope = requestedScope.length > 0;
-
         const hasName = requestedName.length > 0;
 
         if (hasScope !== hasName) {
@@ -289,21 +433,30 @@ export const ListOpenDataDIDs = () => {
 
         const requestedLimit = Number(limit);
 
-        if (!Number.isInteger(requestedLimit) || requestedLimit <= 0) {
-            setError('Limit must be a positive integer.');
+        if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > MAX_LIMIT) {
+            setError(`Limit must be an integer between 1 and ${MAX_LIMIT}.`);
             return;
         }
 
-        setAppliedState(requestedState);
-        setAppliedLimit(requestedLimit);
+        setError(null);
 
-        if (hasScope && hasName) {
-            void loadSingleDID(requestedScope, requestedName, requestedState);
+        const nextSearch: OpenDataSearch =
+            hasScope && hasName
+                ? {
+                      kind: 'single',
+                      scope: requestedScope,
+                      name: requestedName,
+                      state: requestedState,
+                      limit: requestedLimit,
+                  }
+                : {
+                      kind: 'list',
+                      offset: 0,
+                      limit: requestedLimit,
+                      state: requestedState,
+                  };
 
-            return;
-        }
-
-        void loadDIDs(0, requestedState, requestedLimit);
+        navigateToSearch(nextSearch);
     };
 
     const onSearch = (event: FormEvent) => {
@@ -313,32 +466,49 @@ export const ListOpenDataDIDs = () => {
 
     const onStop = (event: FormEvent) => {
         event.preventDefault();
+
+        void queryClient.cancelQueries({
+            queryKey: [...QUERY_KEYS.OPENDATA_DIDS, appliedSearch],
+            exact: true,
+        });
+    };
+
+    const hasPreviousPage = appliedSearch.kind === 'list' && offset > 0;
+    const hasNextPage = appliedSearch.kind === 'list' && offset + dids.length < total;
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / appliedLimit);
+    const currentPage = total === 0 ? 0 : Math.floor(offset / appliedLimit) + 1;
+
+    const changePage = (nextOffset: number) => {
+        if (appliedSearch.kind !== 'list' || isLoading) {
+            return;
+        }
+
+        navigateToSearch({
+            ...appliedSearch,
+            offset: nextOffset,
+        });
     };
 
     const previousPage = () => {
-        const nextOffset = Math.max(0, offset - appliedLimit);
-
-        void loadDIDs(nextOffset, appliedState, appliedLimit);
+        if (!hasPreviousPage || isLoading) {
+            return;
+        }
+        changePage(Math.max(0, offset - appliedLimit));
     };
 
     const nextPage = () => {
-        void loadDIDs(offset + appliedLimit, appliedState, appliedLimit);
+        if (!hasNextPage || isLoading) {
+            return;
+        }
+        changePage(offset + appliedLimit);
     };
-
-    const hasPreviousPage = offset > 0;
-
-    const hasNextPage = offset + dids.length < total;
-
-    const totalPages = total === 0 ? 0 : Math.ceil(total / appliedLimit);
-
-    const currentPage = total === 0 ? 0 : Math.floor(offset / appliedLimit) + 1;
 
     const goToFirstPage = () => {
         if (!hasPreviousPage || isLoading) {
             return;
         }
-
-        void loadDIDs(0, appliedState, appliedLimit);
+        changePage(0);
     };
 
     const goToLastPage = () => {
@@ -348,11 +518,11 @@ export const ListOpenDataDIDs = () => {
 
         const lastOffset = Math.floor((total - 1) / appliedLimit) * appliedLimit;
 
-        void loadDIDs(lastOffset, appliedState, appliedLimit);
+        changePage(lastOffset);
     };
 
     const paginationButtonClasses = [
-        'text-l',
+        'text-lg',
         'px-1',
         'text-neutral-800',
         'dark:text-neutral-100',
@@ -366,10 +536,10 @@ export const ListOpenDataDIDs = () => {
             <div className="rounded-lg bg-neutral-0 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm p-6">
                 <div className="flex flex-col space-y-4 w-full">
                     <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-y-4 md:gap-x-2">
-                        {/* scope:name */}
                         <div className="order-1 flex flex-col md:flex-1 min-w-0 sm:flex-row space-y-2 sm:space-x-2 sm:space-y-0">
                             <div className="w-full flex flex-row space-x-2 items-center">
                                 <Input
+                                    aria-label="Scope"
                                     placeholder="scope"
                                     className="max-w-[250px]"
                                     value={scope}
@@ -379,7 +549,13 @@ export const ListOpenDataDIDs = () => {
 
                                 <span className="text-neutral-900 dark:text-neutral-100 font-bold">:</span>
 
-                                <Input placeholder="name" value={name} onChange={event => setName(event.target.value)} onEnterKey={onSearch} />
+                                <Input
+                                    aria-label="Name"
+                                    placeholder="name"
+                                    value={name}
+                                    onChange={event => setName(event.target.value)}
+                                    onEnterKey={onSearch}
+                                />
 
                                 <Button
                                     className="px-3"
@@ -399,19 +575,27 @@ export const ListOpenDataDIDs = () => {
                         {isFilterExpanded && (
                             <div className="order-2 md:order-3 md:basis-full rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-6 space-y-6">
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <OpenDataFilterField label="State">
-                                        <Input
-                                            value={state}
-                                            onChange={event => setState(event.target.value)}
-                                            onEnterKey={onSearch}
-                                            placeholder="OpenData state"
-                                            className="w-full"
-                                        />
+                                    <OpenDataFilterField id="opendata-state" label="State">
+                                        <Select value={state || 'all'} onValueChange={value => setState(value === 'all' ? '' : value)}>
+                                            <SelectTrigger id="opendata-state" className="w-full">
+                                                <SelectValue placeholder="All states" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All states</SelectItem>
+                                                <SelectItem value="draft">Draft</SelectItem>
+                                                <SelectItem value="public">Public</SelectItem>
+                                                <SelectItem value="suspended">Suspended</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </OpenDataFilterField>
 
-                                    <OpenDataFilterField label="Limit">
+                                    <OpenDataFilterField id="opendata-limit" label="Limit">
                                         <Input
+                                            id="opendata-limit"
                                             type="number"
+                                            min={1}
+                                            max={MAX_LIMIT}
+                                            step={1}
                                             value={limit}
                                             onChange={event => setLimit(event.target.value)}
                                             onEnterKey={onSearch}
@@ -423,37 +607,33 @@ export const ListOpenDataDIDs = () => {
                             </div>
                         )}
 
-                        <SearchButton className="order-3 md:order-2 sm:w-full md:w-48" isRunning={false} onStop={onStop} onSearch={onSearch} />
+                        <SearchButton className="order-3 md:order-2 sm:w-full md:w-48" isRunning={isLoading} onStop={onStop} onSearch={onSearch} />
                     </div>
                 </div>
             </div>
 
-            {/* API / validation error */}
-            {error && (
-                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300">
-                    {error}
+            {/* Validation/API error */}
+            {(error || resultsQuery.isError) && (
+                <div
+                    role="alert"
+                    className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300"
+                >
+                    {error ?? (resultsQuery.error instanceof Error ? resultsQuery.error.message : 'Unable to retrieve OpenData DIDs.')}
                 </div>
             )}
 
-            {/* Results Section */}
+            {/* Results */}
             <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-20rem)]">
-                {/* OpenData Table */}
                 <div className="lg:flex-1 rounded-lg bg-neutral-0 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden h-[60vh] lg:h-full">
                     <div className="flex flex-col h-full">
-                        {/*
-                         * RegularTable is reused unchanged.
-                         *
-                         * Its own client-side pagination
-                         * panel is hidden only in this
-                         * OpenData page because pagination
-                         * is performed server-side through
-                         * Rucio limit/offset.
-                         */}
-                        <div className="flex-1 min-h-0 [&>div>div:last-child]:hidden">
+                        {/* AG Grid displays the current server-side page.
+                            RegularTable's client-side pager is disabled. */}
+                        <div className="flex-1 min-h-0">
                             <RegularTable
                                 tableRef={tableRef}
                                 rowData={dids}
                                 columnDefs={columnDefs}
+                                showPaginationPanel={false}
                                 rowSelection={{
                                     mode: 'singleRow',
                                     enableClickSelection: true,
@@ -465,10 +645,11 @@ export const ListOpenDataDIDs = () => {
                         </div>
 
                         {/* Server-side pagination */}
-                        <div className="flex items-center justify-center text-neutral-800 dark:text-neutral-100 py-2 !m-0 bg-neutral-200 dark:bg-neutral-700 border border-solid border-neutral-900 dark:border-neutral-100 border-opacity-10 dark:border-opacity-10 rounded-b-md">
+                        <div className="flex items-center justify-center text-neutral-800 dark:text-neutral-100 py-2 !m-0 bg-neutral-200 dark:bg-neutral-700 border border-solid border-neutral-900/10 dark:border-neutral-100/10 rounded-b-md">
                             <div className="flex justify-center items-center">
                                 <button
                                     type="button"
+                                    aria-label="First page"
                                     disabled={!hasPreviousPage || isLoading}
                                     onClick={goToFirstPage}
                                     className={paginationButtonClasses}
@@ -478,6 +659,7 @@ export const ListOpenDataDIDs = () => {
 
                                 <button
                                     type="button"
+                                    aria-label="Previous page"
                                     disabled={!hasPreviousPage || isLoading}
                                     onClick={previousPage}
                                     className={paginationButtonClasses}
@@ -485,15 +667,27 @@ export const ListOpenDataDIDs = () => {
                                     <HiOutlineChevronLeft />
                                 </button>
 
-                                <span className="px-3">
+                                <span className="px-3" aria-live="polite">
                                     Page {currentPage} of {totalPages}
                                 </span>
 
-                                <button type="button" disabled={!hasNextPage || isLoading} onClick={nextPage} className={paginationButtonClasses}>
+                                <button
+                                    type="button"
+                                    aria-label="Next page"
+                                    disabled={!hasNextPage || isLoading}
+                                    onClick={nextPage}
+                                    className={paginationButtonClasses}
+                                >
                                     <HiOutlineChevronRight />
                                 </button>
 
-                                <button type="button" disabled={!hasNextPage || isLoading} onClick={goToLastPage} className={paginationButtonClasses}>
+                                <button
+                                    type="button"
+                                    aria-label="Last page"
+                                    disabled={!hasNextPage || isLoading}
+                                    onClick={goToLastPage}
+                                    className={paginationButtonClasses}
+                                >
                                     <HiOutlineChevronDoubleRight />
                                 </button>
                             </div>
@@ -501,7 +695,7 @@ export const ListOpenDataDIDs = () => {
                     </div>
                 </div>
 
-                {/* Same metadata panel used by /dids */}
+                {/* Standard Rucio DID metadata panel */}
                 <div className="w-full lg:w-96 shrink-0 lg:h-full">
                     <ListDIDMeta meta={meta} isLoading={isMetaLoading} hasError={hasMetaError} />
                 </div>

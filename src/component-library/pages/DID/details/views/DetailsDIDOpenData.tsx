@@ -15,6 +15,7 @@ import { KeyValueRow } from '@/component-library/features/key-value/KeyValueRow'
 import { RegularTable } from '@/component-library/features/table/RegularTable/RegularTable';
 import { formatFileSize } from '@/component-library/features/utils/text-formatters';
 import type { DetailsDIDView } from '@/component-library/pages/DID/details/views/DetailsDIDView';
+import { normalizeOpenDataIdentifiers } from '@/lib/core/entity/opendata';
 import type { OpenDataErrorType } from '@/lib/core/entity/opendata';
 import type { OpenDataDIDFileResponse } from '@/lib/core/usecase-models/opendata-did-usecase-models';
 import type { OpenDataDIDViewModel } from '@/lib/infrastructure/data/view-model/opendata';
@@ -180,7 +181,6 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name, isActive }) =>
                     }
 
                     const urls = downloadUrlsByDID.get(`${file.scope}:${file.name}`) ?? [];
-
                     const url = getPreferredDownloadUrl(urls);
 
                     return (
@@ -242,6 +242,10 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name, isActive }) =>
     const data = metadataQuery.data;
     const files = data.files ?? [];
 
+    // Support both single identifiers and arrays returned by Rucio.
+    const dois = normalizeOpenDataIdentifiers(data.doi);
+    const recordIds = normalizeOpenDataIdentifiers(data.record_id);
+
     return (
         <div className="flex flex-col gap-6 p-4 min-w-0 overflow-auto">
             <section className="space-y-3">
@@ -258,15 +262,31 @@ export const DetailsDIDOpenData: DetailsDIDView = ({ scope, name, isActive }) =>
                         </KeyValueRow>
                     )}
 
-                    {data.doi != null && (
+                    {dois.length > 0 && (
                         <KeyValueRow name="DOI">
-                            <CopyableField text={data.doi} />
+                            <div className="flex flex-col gap-1">
+                                {dois.map((doi, index) => (
+                                    <a
+                                        key={`${doi}-${index}`}
+                                        href={`https://doi.org/${encodeURIComponent(doi).replace(/%2F/gi, '/')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-fit break-all text-blue-600 underline dark:text-blue-400"
+                                    >
+                                        {doi}
+                                    </a>
+                                ))}
+                            </div>
                         </KeyValueRow>
                     )}
 
-                    {data.record_id != null && (
+                    {recordIds.length > 0 && (
                         <KeyValueRow name="Record ID">
-                            <Field>{String(data.record_id)}</Field>
+                            <div className="flex flex-col gap-1">
+                                {recordIds.map((recordId, index) => (
+                                    <Field key={`${recordId}-${index}`}>{recordId}</Field>
+                                ))}
+                            </div>
                         </KeyValueRow>
                     )}
                 </div>

@@ -8,8 +8,8 @@ export interface OpenDataDIDViewModel extends BaseViewModel {
     scope: string;
     name: string;
     state?: OpenDataDIDResponse['state'];
-    doi?: string | null;
-    record_id?: number | null;
+    doi?: string | string[] | null;
+    record_id?: number | string | Array<number | string> | null;
     files: OpenDataDIDResponse['files'];
     files_summary?: OpenDataDIDResponse['files_summary'];
     meta: Record<string, unknown>;

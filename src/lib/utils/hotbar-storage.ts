@@ -40,6 +40,18 @@ export function inferCardType(url: string): HotBarCardType {
 }
 
 /**
+ * Identify OpenData pages, including URLs with query parameters.
+ */
+export function isOpenDataUrl(url: string): boolean {
+    try {
+        const pathname = new URL(url, 'http://localhost').pathname;
+        return pathname === '/opendata' || pathname.startsWith('/opendata/');
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Validate that URL is same-host
  */
 export function isSameHost(url: string): boolean {

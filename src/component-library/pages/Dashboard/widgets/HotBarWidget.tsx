@@ -8,8 +8,9 @@ import { PlusIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { HotBarCard as HotBarCardComponent } from './HotBarCard';
 import { AddEditCardDialog } from './AddEditCardDialog';
 import { useToast } from '@/lib/infrastructure/hooks/useToast';
-import { getCards, addCard, updateCard, deleteCard, isMaxCardsReached, getCardCount } from '@/lib/utils/hotbar-storage';
+import { getCards, addCard, updateCard, deleteCard, isMaxCardsReached, isOpenDataUrl, getCardCount } from '@/lib/utils/hotbar-storage';
 import { HotBarCard } from '@/lib/core/entity/hotbar';
+import { useFeature } from '@/component-library/features/feature-flags/FeatureProvider';
 
 const MAX_CARDS = 9;
 
@@ -19,6 +20,9 @@ export const HotBarWidget: React.FC = () => {
     const [editingCard, setEditingCard] = useState<HotBarCard | null>(null);
     const [isClient, setIsClient] = useState(false);
     const { toast } = useToast();
+    const openDataEnabled = useFeature('opendata');
+
+    const visibleCards = cards.filter(card => openDataEnabled || !isOpenDataUrl(card.url));
 
     // Load cards from storage
     useEffect(() => {
@@ -129,6 +133,7 @@ export const HotBarWidget: React.FC = () => {
 
     const cardCount = getCardCount();
     const maxReached = isMaxCardsReached();
+    const hiddenCardCount = cards.length - visibleCards.length;
 
     return (
         <>
@@ -142,13 +147,24 @@ export const HotBarWidget: React.FC = () => {
                     </Button>
                 </div>
 
+                {hiddenCardCount > 0 && (
+                    <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
+                        {hiddenCardCount} saved bookmark{hiddenCardCount !== 1 ? 's are' : ' is'} hidden because the corresponding feature is disabled.
+                    </p>
+                )}
+
                 {/* Empty State */}
-                {cards.length === 0 ? (
+                {visibleCards.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 px-4">
                         <BookmarkIcon className="w-16 h-16 text-neutral-400 dark:text-neutral-600 mb-4" />
-                        <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">No bookmarks yet</h3>
+                        <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                            {cards.length === 0 ? 'No bookmarks yet' : 'No available bookmarks'}
+                        </h3>
+
                         <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-6 max-w-md">
-                            Add your frequently accessed pages for quick navigation. You can save up to {MAX_CARDS} bookmarks.
+                            {cards.length === 0
+                                ? `Add your frequently accessed pages for quick navigation. You can save up to ${MAX_CARDS} bookmarks.`
+                                : 'Some saved bookmarks are unavailable because their features are disabled.'}
                         </p>
                         <Button variant="default" onClick={handleAddClick} className="flex items-center gap-2">
                             <PlusIcon className="w-4 h-4" />
@@ -158,7 +174,7 @@ export const HotBarWidget: React.FC = () => {
                 ) : (
                     /* Cards Grid */
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {cards.map(card => (
+                        {visibleCards.map(card => (
                             <HotBarCardComponent
                                 key={card.id}
                                 card={card}

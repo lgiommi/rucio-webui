@@ -15,7 +15,7 @@ import { CommandSection, CommandItem } from '@/lib/core/entity/command-palette';
 import { CommandPaletteSection } from './CommandPaletteSection';
 import { CommandPaletteEmpty } from './CommandPaletteEmpty';
 import { getRecentPages, formatRecentPageTime } from '@/lib/utils/recent-pages-storage';
-import { getCards } from '@/lib/utils/hotbar-storage';
+import { getCards, isOpenDataUrl } from '@/lib/utils/hotbar-storage';
 import { getNavigationCommands, getActionCommands, getHelpCommands } from '@/lib/infrastructure/command-palette/command-registry';
 import { navigateToSearch } from '@/lib/infrastructure/utils/navigation';
 import { ClockIcon, BookmarkIcon } from '@heroicons/react/24/outline';
@@ -33,14 +33,6 @@ export interface CommandPaletteProps {
     /** Callback when palette should close */
     onOpenChange: (open: boolean) => void;
 }
-
-const isOpenDataUrl = (url: string): boolean => {
-    try {
-        return new URL(url, window.location.origin).pathname.startsWith('/opendata');
-    } catch {
-        return false;
-    }
-};
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChange }) => {
     const [searchQuery, setSearchQuery] = useState('');

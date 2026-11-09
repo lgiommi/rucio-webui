@@ -1,46 +1,16 @@
 'use client';
 
 import React from 'react';
-import { HotBarCard as HotBarCardType, HotBarCardType as CardTypeEnum } from '@/lib/core/entity/hotbar';
+import { HotBarCard as HotBarCardType } from '@/lib/core/entity/hotbar';
 import { PencilIcon, TrashIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
+import { formatCardType, getTypeBadgeStyles } from '@/component-library/pages/Dashboard/widgets/HotBarCardUtils';
 
 interface HotBarCardProps {
     card: HotBarCardType;
     onEdit: (card: HotBarCardType) => void;
     onDelete: (id: string) => void;
     onCopyLink: (url: string) => void;
-}
-
-/**
- * Get badge color based on card type (semantic colors from design system)
- */
-function getTypeBadgeStyles(type: CardTypeEnum): string {
-    switch (type) {
-        case CardTypeEnum.DID:
-        case CardTypeEnum.DID_LIST:
-            return 'bg-base-info-100 text-base-info-900 dark:bg-base-info-900/20 dark:text-base-info-100';
-        case CardTypeEnum.RULE:
-        case CardTypeEnum.RULE_LIST:
-            return 'bg-base-success-100 text-base-success-900 dark:bg-base-success-900/20 dark:text-base-success-100';
-        case CardTypeEnum.RSE:
-        case CardTypeEnum.RSE_LIST:
-            return 'bg-base-warning-100 text-base-warning-900 dark:bg-base-warning-900/20 dark:text-base-warning-100';
-        case CardTypeEnum.SUSPICIOUS_REPLICA_LIST:
-            return 'bg-base-error-100 text-base-error-900 dark:bg-base-error-900/20 dark:text-base-error-100';
-        case CardTypeEnum.ACCOUNT:
-        case CardTypeEnum.ACCOUNT_LIST:
-            return 'bg-neutral-200 text-neutral-900 dark:bg-neutral-700 dark:text-neutral-100';
-        default:
-            return 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
-    }
-}
-
-/**
- * Format card type for display
- */
-function formatCardType(type: CardTypeEnum): string {
-    return type.replace(/_/g, ' ');
 }
 
 /**

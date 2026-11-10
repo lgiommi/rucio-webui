@@ -24,8 +24,8 @@ export interface OpenDataDIDResponse extends BaseResponseModel {
     name: string;
     state?: OpenDataDIDState;
     files_summary?: OpenDataFilesSummaryDTO;
-    doi?: string | null;
-    record_id?: number | null;
+    doi?: string | string[] | null;
+    record_id?: number | string | Array<number | string> | null;
     files: OpenDataDIDFileResponse[];
     meta: Record<string, unknown>;
 }

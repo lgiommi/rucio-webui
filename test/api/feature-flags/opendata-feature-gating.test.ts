@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 
+import { withFeature } from '@/lib/infrastructure/adapters/with-feature';
+import { requireFeature } from '@/lib/infrastructure/feature-flags/require-feature';
+import CONTROLLERS from '@/lib/infrastructure/ioc/ioc-symbols-controllers';
+
 // jsdom does not always provide Response.json.
 if (typeof (global.Response as { json?: unknown }).json !== 'function') {
     (
@@ -15,11 +19,18 @@ if (typeof (global.Response as { json?: unknown }).json !== 'function') {
         });
 }
 
-import { withFeature } from '@/lib/infrastructure/adapters/with-feature';
-import CONTROLLERS from '@/lib/infrastructure/ioc/ioc-symbols-controllers';
+jest.mock('@/component-library/pages/DID/list/ListOpenDataDIDs', () => ({
+    ListOpenDataDIDs: () => null,
+}));
+
+jest.mock('@/lib/infrastructure/feature-flags/require-feature', () => ({
+    requireFeature: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('OpenData feature gating', () => {
     const originalValue = process.env.FEATURE_OPENDATA;
+
+    const controllers = [CONTROLLERS.OPENDATA_DID, CONTROLLERS.LIST_OPENDATA_DIDS];
 
     afterEach(() => {
         if (originalValue === undefined) {
@@ -27,9 +38,9 @@ describe('OpenData feature gating', () => {
         } else {
             process.env.FEATURE_OPENDATA = originalValue;
         }
-    });
 
-    const controllers = [CONTROLLERS.OPENDATA_DID, CONTROLLERS.LIST_OPENDATA_DIDS];
+        jest.clearAllMocks();
+    });
 
     it.each(controllers)('returns 404 when OpenData is disabled by default', async controller => {
         delete process.env.FEATURE_OPENDATA;
@@ -53,5 +64,16 @@ describe('OpenData feature gating', () => {
 
         expect(response.status).toBe(200);
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    describe('page', () => {
+        it('requires the opendata feature', async () => {
+            const { default: Page } = await import('@/app/(rucio)/opendata/dids/page');
+
+            await Page();
+
+            expect(requireFeature).toHaveBeenCalledTimes(1);
+            expect(requireFeature).toHaveBeenCalledWith('opendata');
+        });
     });
 });

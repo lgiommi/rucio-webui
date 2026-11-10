@@ -12,6 +12,7 @@ import { AMITagsRow } from '@/component-library/features/ami/AMITagsRow';
 import { PandaTaskRow } from '@/component-library/features/panda/PandaTaskRow';
 import { Checkbox } from '@/component-library/atoms/form/checkbox';
 import { DIDType } from '@/lib/core/entity/rucio';
+import { useFeature } from '@/component-library/features/feature-flags/FeatureProvider';
 
 /**
  * A responsive divider component for DID metadata sections.
@@ -48,6 +49,8 @@ const FileInfoDivider = () => (
 );
 
 export const DetailsDIDMeta = ({ meta }: { meta: DIDMetaViewModel }) => {
+    const openDataEnabled = useFeature('opendata');
+
     const getFileInformation = () => {
         return (
             <>
@@ -124,6 +127,11 @@ export const DetailsDIDMeta = ({ meta }: { meta: DIDMetaViewModel }) => {
                     <KeyValueRow name="Purge Replicas">
                         <Checkbox checked={meta.purge_replicas} />
                     </KeyValueRow>
+                    {openDataEnabled && (
+                        <KeyValueRow name="OpenData">
+                            <Checkbox checked={meta.is_opendata} disabled />
+                        </KeyValueRow>
+                    )}
                 </div>
             </div>
 

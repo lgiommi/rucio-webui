@@ -29,6 +29,15 @@ export const QUERY_KEYS = {
 
     /** Root of every account query (info, attributes, identities, quotas); see `accountKeys` */
     ACCOUNT: ['account'] as const,
+
+    /** OpenData DID metadata, without download URLs */
+    OPENDATA_DID: ['opendata-did'] as const,
+
+    /** OpenData download URLs, requested independently */
+    OPENDATA_DOWNLOAD_URLS: ['opendata-download-urls'] as const,
+
+    /** OpenData DID list and search results, including filters and pagination */
+    OPENDATA_DIDS: ['opendata-dids'] as const,
 } as const;
 
 /**

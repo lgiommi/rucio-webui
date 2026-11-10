@@ -5,43 +5,14 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/component-library/atoms/form/button';
 import { Input, Textarea } from '@/component-library/atoms/form/input';
-import { HotBarCard, HotBarCardType } from '@/lib/core/entity/hotbar';
+import { HotBarCard } from '@/lib/core/entity/hotbar';
 import { inferCardType, isSameHost } from '@/lib/utils/hotbar-storage';
-
+import { formatCardType, getTypeBadgeStyles } from '@/component-library/pages/Dashboard/widgets/HotBarCardUtils';
 interface AddEditCardDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     card?: HotBarCard | null;
     onSave: (data: { title: string; description?: string; url: string }) => void;
-}
-
-/**
- * Get badge color based on card type
- */
-function getTypeBadgeStyles(type: HotBarCardType): string {
-    switch (type) {
-        case HotBarCardType.DID:
-        case HotBarCardType.DID_LIST:
-            return 'bg-base-info-100 text-base-info-900 dark:bg-base-info-900/20 dark:text-base-info-100';
-        case HotBarCardType.RULE:
-        case HotBarCardType.RULE_LIST:
-            return 'bg-base-success-100 text-base-success-900 dark:bg-base-success-900/20 dark:text-base-success-100';
-        case HotBarCardType.RSE:
-        case HotBarCardType.RSE_LIST:
-            return 'bg-base-warning-100 text-base-warning-900 dark:bg-base-warning-900/20 dark:text-base-warning-100';
-        case HotBarCardType.ACCOUNT:
-        case HotBarCardType.ACCOUNT_LIST:
-            return 'bg-neutral-200 text-neutral-900 dark:bg-neutral-700 dark:text-neutral-100';
-        default:
-            return 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
-    }
-}
-
-/**
- * Format card type for display
- */
-function formatCardType(type: HotBarCardType): string {
-    return type.replace(/_/g, ' ');
 }
 
 export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOpenChange, card, onSave }) => {
@@ -180,7 +151,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                             </label>
                             <Input
                                 id="url"
-                                type="url"
+                                type="text"
                                 value={url}
                                 onChange={e => {
                                     setUrl(e.target.value);
@@ -188,7 +159,7 @@ export const AddEditCardDialog: React.FC<AddEditCardDialogProps> = ({ open, onOp
                                         setErrors({ ...errors, url: undefined });
                                     }
                                 }}
-                                placeholder="/did/scope:name"
+                                placeholder="e.g., /did/scope:name or /dids"
                                 className={errors.url ? 'border-base-error-500' : ''}
                             />
                             {errors.url && <p className="mt-1 text-sm text-base-error-600 dark:text-base-error-400">{errors.url}</p>}

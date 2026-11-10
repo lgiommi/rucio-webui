@@ -30,3 +30,15 @@ export function normalizeOpenDataDIDState(value: unknown): OpenDataDIDState | un
 
     return undefined;
 }
+
+/**
+ * Normalize scalar or multiple OpenData identifiers into strings.
+ * Supports both the current and future Rucio API response formats.
+ */
+export function normalizeOpenDataIdentifiers(
+    value: string | number | Array<string | number> | null | undefined,
+): string[] {
+    const values = Array.isArray(value) ? value : value == null ? [] : [value];
+
+    return values.map(item => String(item).trim()).filter(Boolean);
+}

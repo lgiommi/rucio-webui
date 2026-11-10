@@ -5,6 +5,7 @@
 export enum HotBarCardType {
     DID = 'DID',
     DID_LIST = 'DID_LIST',
+    OPENDATA_DID_LIST = 'OPENDATA_DID_LIST',
     RULE = 'RULE',
     RULE_LIST = 'RULE_LIST',
     RSE = 'RSE',

@@ -45,8 +45,8 @@ export interface OpenDataDIDDTO {
     name: string;
 
     state?: OpenDataDIDState;
-    doi?: string | null;
-    record_id?: number | null;
+    doi?: string | string[] | null;
+    record_id?: number | string | Array<number | string> | null;
     files: OpenDataDIDFileDTO[];
     files_summary?: OpenDataFilesSummaryDTO;
     meta: Record<string, unknown>;

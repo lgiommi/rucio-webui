@@ -22,6 +22,7 @@ import { ListDIDMeta } from '@/component-library/pages/DID/list/meta/ListDIDMeta
 
 import type { DIDMetaViewModel } from '@/lib/infrastructure/data/view-model/did';
 import { QUERY_KEYS } from '@/lib/infrastructure/query/query-keys';
+import { Field } from '@/component-library/atoms/misc/Field';
 
 type OpenDataDIDListItem = {
     scope: string;
@@ -159,6 +160,13 @@ function getOpenDataErrorMessage(response: { errorType?: string } | null, single
     }
 }
 
+class OpenDataRequestError extends Error {
+    constructor(message: string, readonly errorType?: string) {
+        super(message);
+        this.name = 'OpenDataRequestError';
+    }
+}
+
 async function fetchOpenDataDIDs(search: OpenDataSearch, signal: AbortSignal): Promise<OpenDataSearchResult> {
     if (search.kind === 'single') {
         const params = new URLSearchParams({
@@ -173,7 +181,7 @@ async function fetchOpenDataDIDs(search: OpenDataSearch, signal: AbortSignal): P
         const data = (await response.json().catch(() => null)) as GetOpenDataDIDResponse | null;
 
         if (!response.ok || !data || data.status !== 'success') {
-            throw new Error(getOpenDataErrorMessage(data, true));
+            throw new OpenDataRequestError(getOpenDataErrorMessage(data, true), data?.errorType);
         }
 
         const matchesState = !search.state || data.state?.toLowerCase() === search.state.toLowerCase();
@@ -209,7 +217,7 @@ async function fetchOpenDataDIDs(search: OpenDataSearch, signal: AbortSignal): P
     const data = (await response.json().catch(() => null)) as ListOpenDataDIDsResponse | null;
 
     if (!response.ok || !data || data.status !== 'success') {
-        throw new Error(getOpenDataErrorMessage(data, false));
+        throw new OpenDataRequestError(getOpenDataErrorMessage(data, false), data?.errorType);
     }
 
     return {
@@ -274,6 +282,8 @@ export const ListOpenDataDIDs = () => {
     const offset = resultsQuery.data?.offset ?? (appliedSearch.kind === 'list' ? appliedSearch.offset : 0);
     const appliedLimit = appliedSearch.limit;
     const isLoading = resultsQuery.isFetching;
+
+    const isUnsupported = resultsQuery.error instanceof OpenDataRequestError && resultsQuery.error.errorType === 'FEATURE_UNSUPPORTED';
 
     /*
      * Restore the form when navigating with browser Back/Forward
@@ -610,13 +620,19 @@ export const ListOpenDataDIDs = () => {
             </div>
 
             {/* Validation/API error */}
-            {(error || resultsQuery.isError) && (
+            {(error || (resultsQuery.isError && !isUnsupported)) && (
                 <div
                     role="alert"
                     className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300"
                 >
                     {error ?? (resultsQuery.error instanceof Error ? resultsQuery.error.message : 'Unable to retrieve OpenData DIDs.')}
                 </div>
+            )}
+
+            {!error && isUnsupported && (
+                <Field variant="subtle" fullWidth role="status">
+                    OpenData is not supported by this Rucio deployment.
+                </Field>
             )}
 
             {/* Results */}

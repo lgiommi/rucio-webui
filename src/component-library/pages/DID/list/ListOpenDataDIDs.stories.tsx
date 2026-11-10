@@ -120,7 +120,8 @@ export const Empty: Story = {
     },
 };
 
-export const Error: Story = {
+export const ErrorState: Story = {
+    name: 'Error',
     parameters: {
         msw: {
             handlers: [
@@ -132,6 +133,24 @@ export const Error: Story = {
                             message: 'Internal storage configuration details',
                         },
                         { status: 503 },
+                    ),
+                ),
+            ],
+        },
+    },
+};
+
+export const Unsupported: Story = {
+    parameters: {
+        msw: {
+            handlers: [
+                http.get('/api/feature/list-opendata-dids', () =>
+                    HttpResponse.json(
+                        {
+                            status: 'error',
+                            errorType: 'FEATURE_UNSUPPORTED',
+                        },
+                        { status: 501 },
                     ),
                 ),
             ],

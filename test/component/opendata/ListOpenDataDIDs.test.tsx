@@ -302,6 +302,26 @@ describe('ListOpenDataDIDs', () => {
         expect(screen.queryByText(/Internal storage configuration details/)).not.toBeInTheDocument();
     });
 
+    it('shows an informational state when OpenData is unsupported', async () => {
+        fetchMock.resetMocks();
+
+        fetchMock.mockResponseOnce(
+            JSON.stringify({
+                status: 'error',
+                errorType: 'FEATURE_UNSUPPORTED',
+                message: 'Internal server details',
+            }),
+            { status: 501 },
+        );
+
+        renderList();
+
+        expect(await screen.findByRole('status')).toHaveTextContent('OpenData is not supported by this Rucio deployment.');
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.queryByText('Internal server details')).not.toBeInTheDocument();
+    });
+
     it('does not replace newer results with an older response', async () => {
         fetchMock.resetMocks();
 

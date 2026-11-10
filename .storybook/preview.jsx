@@ -6,6 +6,13 @@ import '../src/app/globals.css';
 // The app does this in src/app/layout.tsx via <AgGridSetup />; Storybook has no
 // root layout, so we import the same side-effect module here so grid stories render.
 import '../src/lib/ag-grid-setup';
+import { initialize, mswLoader } from 'msw-storybook-addon';
+
+initialize({
+    onUnhandledRequest: 'bypass',
+});
+
+export const loaders = [mswLoader];
 
 /**
  * Storybook Preview Configuration

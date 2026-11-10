@@ -18,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { SearchButton } from '@/component-library/features/search/SearchButton';
 import { RegularTable } from '@/component-library/features/table/RegularTable/RegularTable';
-import { DefaultTextFilterParams } from '@/component-library/features/utils/filter-parameters';
 import { ListDIDMeta } from '@/component-library/pages/DID/list/meta/ListDIDMeta';
 
 import type { DIDMetaViewModel } from '@/lib/infrastructure/data/view-model/did';
@@ -322,16 +321,14 @@ export const ListOpenDataDIDs = () => {
             },
             flex: 1,
             minWidth: 250,
-            filter: true,
-            filterParams: DefaultTextFilterParams,
+            filter: false,
         },
         {
             headerName: 'State',
             field: 'state',
             minWidth: 140,
             maxWidth: 200,
-            filter: true,
-            filterParams: DefaultTextFilterParams,
+            filter: false,
         },
     ]);
 

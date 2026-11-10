@@ -28,14 +28,21 @@ jest.mock('@/component-library/features/table/RegularTable/RegularTable', () => 
         rowData: Array<{ scope: string; name: string }>;
         columnDefs: Array<{
             headerName?: string;
+            filter?: boolean;
             cellRenderer?: (params: { data: { scope: string; name: string } }) => ReactNode;
         }>;
         showPaginationPanel?: boolean;
     }) => {
         const identifierColumn = columnDefs.find(column => column.headerName === 'Identifier');
+        const stateColumn = columnDefs.find(column => column.headerName === 'State');
 
         return (
-            <div data-testid="opendata-table" data-show-pagination={String(showPaginationPanel)}>
+            <div
+                data-testid="opendata-table"
+                data-show-pagination={String(showPaginationPanel)}
+                data-identifier-filter={String(identifierColumn?.filter)}
+                data-state-filter={String(stateColumn?.filter)}
+            >
                 {rowData.map(row => (
                     <div key={`${row.scope}:${row.name}`}>{identifierColumn?.cellRenderer?.({ data: row }) ?? `${row.scope}:${row.name}`}</div>
                 ))}
@@ -154,7 +161,11 @@ describe('ListOpenDataDIDs', () => {
 
         expect(link).toHaveAttribute('href', '/did/demo/file-0.root');
 
-        expect(screen.getByTestId('opendata-table')).toHaveAttribute('data-show-pagination', 'false');
+        const table = screen.getByTestId('opendata-table');
+
+        expect(table).toHaveAttribute('data-show-pagination', 'false');
+        expect(table).toHaveAttribute('data-identifier-filter', 'false');
+        expect(table).toHaveAttribute('data-state-filter', 'false');
 
         expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
 

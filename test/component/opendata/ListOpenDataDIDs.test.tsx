@@ -320,6 +320,9 @@ describe('ListOpenDataDIDs', () => {
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
         expect(screen.queryByText('Internal server details')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('opendata-table')).not.toBeInTheDocument();
+        expect(screen.queryByText('Page 0 of 0')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('metadata-panel')).not.toBeInTheDocument();
     });
 
     it('does not replace newer results with an older response', async () => {

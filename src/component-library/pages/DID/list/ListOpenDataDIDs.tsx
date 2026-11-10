@@ -636,83 +636,85 @@ export const ListOpenDataDIDs = () => {
             )}
 
             {/* Results */}
-            <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-20rem)]">
-                <div className="lg:flex-1 rounded-lg bg-neutral-0 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden h-[60vh] lg:h-full">
-                    <div className="flex flex-col h-full">
-                        {/* AG Grid displays the current server-side page.
+            {!isUnsupported && (
+                <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-20rem)]">
+                    <div className="lg:flex-1 rounded-lg bg-neutral-0 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden h-[60vh] lg:h-full">
+                        <div className="flex flex-col h-full">
+                            {/* AG Grid displays the current server-side page.
                             RegularTable's client-side pager is disabled. */}
-                        <div className="flex-1 min-h-0">
-                            <RegularTable
-                                tableRef={tableRef}
-                                rowData={dids}
-                                columnDefs={columnDefs}
-                                showPaginationPanel={false}
-                                rowSelection={{
-                                    mode: 'singleRow',
-                                    enableClickSelection: true,
-                                }}
-                                onSelectionChanged={onSelectionChanged}
-                                paginationPageSize={Math.max(dids.length, 1)}
-                                getRowId={params => `${params.data.scope}:${params.data.name}`}
-                            />
-                        </div>
+                            <div className="flex-1 min-h-0">
+                                <RegularTable
+                                    tableRef={tableRef}
+                                    rowData={dids}
+                                    columnDefs={columnDefs}
+                                    showPaginationPanel={false}
+                                    rowSelection={{
+                                        mode: 'singleRow',
+                                        enableClickSelection: true,
+                                    }}
+                                    onSelectionChanged={onSelectionChanged}
+                                    paginationPageSize={Math.max(dids.length, 1)}
+                                    getRowId={params => `${params.data.scope}:${params.data.name}`}
+                                />
+                            </div>
 
-                        {/* Server-side pagination */}
-                        <div className="flex items-center justify-center text-neutral-800 dark:text-neutral-100 py-2 !m-0 bg-neutral-200 dark:bg-neutral-700 border border-solid border-neutral-900/10 dark:border-neutral-100/10 rounded-b-md">
-                            <div className="flex justify-center items-center">
-                                <button
-                                    type="button"
-                                    aria-label="First page"
-                                    disabled={!hasPreviousPage || isLoading}
-                                    onClick={goToFirstPage}
-                                    className={paginationButtonClasses}
-                                >
-                                    <HiOutlineChevronDoubleLeft />
-                                </button>
+                            {/* Server-side pagination */}
+                            <div className="flex items-center justify-center text-neutral-800 dark:text-neutral-100 py-2 !m-0 bg-neutral-200 dark:bg-neutral-700 border border-solid border-neutral-900/10 dark:border-neutral-100/10 rounded-b-md">
+                                <div className="flex justify-center items-center">
+                                    <button
+                                        type="button"
+                                        aria-label="First page"
+                                        disabled={!hasPreviousPage || isLoading}
+                                        onClick={goToFirstPage}
+                                        className={paginationButtonClasses}
+                                    >
+                                        <HiOutlineChevronDoubleLeft />
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    aria-label="Previous page"
-                                    disabled={!hasPreviousPage || isLoading}
-                                    onClick={previousPage}
-                                    className={paginationButtonClasses}
-                                >
-                                    <HiOutlineChevronLeft />
-                                </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Previous page"
+                                        disabled={!hasPreviousPage || isLoading}
+                                        onClick={previousPage}
+                                        className={paginationButtonClasses}
+                                    >
+                                        <HiOutlineChevronLeft />
+                                    </button>
 
-                                <span className="px-3" aria-live="polite">
-                                    Page {currentPage} of {totalPages}
-                                </span>
+                                    <span className="px-3" aria-live="polite">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
 
-                                <button
-                                    type="button"
-                                    aria-label="Next page"
-                                    disabled={!hasNextPage || isLoading}
-                                    onClick={nextPage}
-                                    className={paginationButtonClasses}
-                                >
-                                    <HiOutlineChevronRight />
-                                </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Next page"
+                                        disabled={!hasNextPage || isLoading}
+                                        onClick={nextPage}
+                                        className={paginationButtonClasses}
+                                    >
+                                        <HiOutlineChevronRight />
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    aria-label="Last page"
-                                    disabled={!hasNextPage || isLoading}
-                                    onClick={goToLastPage}
-                                    className={paginationButtonClasses}
-                                >
-                                    <HiOutlineChevronDoubleRight />
-                                </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Last page"
+                                        disabled={!hasNextPage || isLoading}
+                                        onClick={goToLastPage}
+                                        className={paginationButtonClasses}
+                                    >
+                                        <HiOutlineChevronDoubleRight />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Standard Rucio DID metadata panel */}
-                <div className="w-full lg:w-96 shrink-0 lg:h-full">
-                    <ListDIDMeta meta={meta} isLoading={isMetaLoading} hasError={hasMetaError} />
+                    {/* Standard Rucio DID metadata panel */}
+                    <div className="w-full lg:w-96 shrink-0 lg:h-full">
+                        <ListDIDMeta meta={meta} isLoading={isMetaLoading} hasError={hasMetaError} />
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
